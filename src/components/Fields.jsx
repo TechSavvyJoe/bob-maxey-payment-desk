@@ -11,6 +11,8 @@ const cleanNumber = (raw) => {
   return Number.isFinite(parsed) ? parsed : 0;
 };
 
+const isBlank = (value) => value === "" || value === null || value === undefined;
+
 export const MoneyInput = forwardRef(function MoneyInput(
   {
     value,
@@ -27,13 +29,17 @@ export const MoneyInput = forwardRef(function MoneyInput(
   const generatedId = useId();
   const inputId = id || generatedId;
   const [focused, setFocused] = useState(false);
-  const [draft, setDraft] = useState(String(value ?? 0));
+  const [draft, setDraft] = useState(isBlank(value) ? "" : String(value));
 
   useEffect(() => {
-    if (!focused) setDraft(String(value ?? 0));
+    if (!focused) setDraft(isBlank(value) ? "" : String(value));
   }, [value, focused]);
 
   const commit = (raw) => {
+    if (String(raw).trim() === "") {
+      onChange?.("");
+      return "";
+    }
     const next = Math.max(min, cleanNumber(raw));
     onChange?.(next);
     return next;
@@ -59,12 +65,12 @@ export const MoneyInput = forwardRef(function MoneyInput(
         }}
         onFocus={(event) => {
           setFocused(true);
-          setDraft(String(value ?? 0));
+          setDraft(isBlank(value) ? "" : String(value));
           requestAnimationFrame(() => event.target.select());
         }}
         ref={ref}
         type="text"
-        value={focused ? draft : numberFormatter.format(value ?? 0)}
+        value={focused ? draft : isBlank(value) ? "" : numberFormatter.format(value)}
       />
     </span>
   );
@@ -74,10 +80,10 @@ export const PercentInput = ({ value, onChange, id, ariaLabel, className = "", d
   const generatedId = useId();
   const inputId = id || generatedId;
   const [focused, setFocused] = useState(false);
-  const [draft, setDraft] = useState(String(value ?? 0));
+  const [draft, setDraft] = useState(isBlank(value) ? "" : String(value));
 
   useEffect(() => {
-    if (!focused) setDraft(Number(value ?? 0).toFixed(2));
+    if (!focused) setDraft(isBlank(value) ? "" : Number(value).toFixed(2));
   }, [value, focused]);
 
   return (
@@ -90,19 +96,20 @@ export const PercentInput = ({ value, onChange, id, ariaLabel, className = "", d
         min="0"
         onBlur={() => {
           setFocused(false);
-          setDraft(Number(value ?? 0).toFixed(2));
+          setDraft(isBlank(value) ? "" : Number(value).toFixed(2));
         }}
         onChange={(event) => {
-          setDraft(event.target.value);
-          onChange?.(Math.max(0, cleanNumber(event.target.value)));
+          const raw = event.target.value;
+          setDraft(raw);
+          onChange?.(raw.trim() === "" ? "" : Math.max(0, cleanNumber(raw)));
         }}
         onFocus={(event) => {
           setFocused(true);
-          setDraft(String(value ?? 0));
+          setDraft(isBlank(value) ? "" : String(value));
           requestAnimationFrame(() => event.target.select());
         }}
         type="text"
-        value={focused ? draft : Number(value ?? 0).toFixed(2)}
+        value={focused ? draft : isBlank(value) ? "" : Number(value).toFixed(2)}
       />
       <span aria-hidden="true" className="percent-input__suffix">%</span>
     </span>

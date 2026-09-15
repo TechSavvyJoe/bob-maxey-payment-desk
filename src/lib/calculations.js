@@ -296,16 +296,17 @@ export function calculateDeal(input = {}) {
   const upfrontAmountCents = additionalUpfrontCents + upfrontOptionalItemsCents;
 
   const isFinanced = dealType === 'finance';
-  const documentFeeCents = DEFAULT_CENTS.documentFee;
-  const crvFeeCents = DEFAULT_CENTS.crvFee;
+  const hasVehicle = salePriceCents > 0;
+  const documentFeeCents = hasVehicle ? DEFAULT_CENTS.documentFee : 0;
+  const crvFeeCents = hasVehicle ? DEFAULT_CENTS.crvFee : 0;
   const taxableFixedFeesCents = documentFeeCents + crvFeeCents;
-  const plateTransferFeeCents = plateMode === 'transfer' ? DEFAULT_CENTS.plateTransferFee : 0;
+  const plateTransferFeeCents = hasVehicle && plateMode === 'transfer' ? DEFAULT_CENTS.plateTransferFee : 0;
   const additionalTransferFeeCents =
-    plateMode === 'transfer' ? DEFAULT_CENTS.additionalTransferFee : 0;
-  const titleFeeCents = isFinanced
-    ? DEFAULT_CENTS.financeTitleFee
-    : DEFAULT_CENTS.cashTitleFee;
-  const appliedNewPlateAmountCents = plateMode === 'new' ? newPlateAmountCents : 0;
+    hasVehicle && plateMode === 'transfer' ? DEFAULT_CENTS.additionalTransferFee : 0;
+  const titleFeeCents = hasVehicle
+    ? (isFinanced ? DEFAULT_CENTS.financeTitleFee : DEFAULT_CENTS.cashTitleFee)
+    : 0;
+  const appliedNewPlateAmountCents = hasVehicle && plateMode === 'new' ? newPlateAmountCents : 0;
   const plateFeesCents =
     plateTransferFeeCents +
     additionalTransferFeeCents +

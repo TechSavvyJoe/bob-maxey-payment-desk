@@ -4,35 +4,33 @@ import CustomerView from "./components/CustomerView.jsx";
 import DealerView from "./components/DealerView.jsx";
 import MobileNav from "./components/MobileNav.jsx";
 import PaymentGrid from "./components/PaymentGrid.jsx";
+import QuickJumpNav from "./components/QuickJumpNav.jsx";
 import ResultsPanel from "./components/ResultsPanel.jsx";
 import ViewToggle from "./components/ViewToggle.jsx";
 
 const INITIAL_DEAL = Object.freeze({
-  salePrice: 38_750,
-  cashDown: 2_500,
-  tradeAllowance: 12_000,
-  tradePayoff: 15_200,
+  salePrice: "",
+  cashDown: "",
+  tradeAllowance: "",
+  tradePayoff: "",
   dealType: "finance",
   plateMode: "transfer",
-  newPlateAmount: 0,
+  newPlateAmount: "",
   rollNegativeEquity: true,
-  apr: 6.49,
+  apr: "",
   termMonths: 72,
-  optionalItems: [
-    { id: "service-contract", name: "Service contract", amount: 2_195, taxable: false },
-    { id: "gap-coverage", name: "GAP coverage", amount: 895, taxable: false },
-  ],
+  optionalItems: [],
 });
 
 const INITIAL_RATES = Object.freeze({
-  36: 6.49,
-  48: 6.49,
-  60: 6.49,
-  72: 6.49,
-  84: 6.49,
+  36: "",
+  48: "",
+  60: "",
+  72: "",
+  84: "",
 });
 
-const INITIAL_DOWN_PAYMENTS = Object.freeze([0, 1_000, 2_500, 4_000]);
+const INITIAL_DOWN_PAYMENTS = Object.freeze(["", "", "", ""]);
 
 const freshDeal = () => ({
   ...INITIAL_DEAL,
@@ -46,10 +44,11 @@ export default function App() {
   const [gridDownPayments, setGridDownPayments] = useState([...INITIAL_DOWN_PAYMENTS]);
   const [targetType, setTargetType] = useState("payment");
   const [targetValues, setTargetValues] = useState({
-    payment: 650,
-    outTheDoor: 40_000,
-    amountFinanced: 40_000,
+    payment: "",
+    outTheDoor: "",
+    amountFinanced: "",
   });
+  const [mobileGridOpen, setMobileGridOpen] = useState(false);
   const [solverExpanded, setSolverExpanded] = useState(false);
   const [accordions, setAccordions] = useState({
     vehicle: true,
@@ -71,7 +70,7 @@ export default function App() {
     }
     setDealInput((current) => {
       const next = { ...current, [field]: value };
-      if (field === "termMonths") next.apr = Number(gridRates[value] ?? current.apr);
+      if (field === "termMonths") next.apr = gridRates[value] ?? current.apr;
       return next;
     });
   };
@@ -94,8 +93,8 @@ export default function App() {
         ...current.optionalItems,
         {
           id,
-          name: preset.name ?? "Additional product",
-          amount: preset.amount ?? 0,
+          name: preset.name ?? "",
+          amount: preset.amount ?? "",
           taxable: preset.taxable ?? false,
         },
       ],
@@ -125,7 +124,8 @@ export default function App() {
     setGridRates({ ...INITIAL_RATES });
     setGridDownPayments([...INITIAL_DOWN_PAYMENTS]);
     setTargetType("payment");
-    setTargetValues({ payment: 650, outTheDoor: 40_000, amountFinanced: 40_000 });
+    setTargetValues({ payment: "", outTheDoor: "", amountFinanced: "" });
+    setMobileGridOpen(false);
     setSolverExpanded(false);
     setAccordions({ vehicle: true, trade: true, taxes: true, roll: true });
     itemCounter.current = 1;
@@ -163,10 +163,17 @@ export default function App() {
   const applyGridScenario = ({ termMonths, apr, cashDown }) => {
     setDealInput((current) => ({ ...current, termMonths, apr, cashDown }));
     setGridRates((current) => ({ ...current, [termMonths]: apr }));
+    setMobileGridOpen(false);
     document.getElementById("calculator-top")?.scrollIntoView({ behavior: "smooth" });
   };
 
-  const scrollToGrid = () => document.getElementById("payment-grid")?.scrollIntoView({ behavior: "smooth" });
+  const scrollToGrid = () => {
+    if (window.matchMedia("(max-width: 760px)").matches) {
+      setMobileGridOpen(true);
+      return;
+    }
+    document.getElementById("payment-grid")?.scrollIntoView({ behavior: "smooth" });
+  };
   const scrollToPayment = () => {
     const mobile = window.matchMedia("(max-width: 760px)").matches;
     document
@@ -175,7 +182,7 @@ export default function App() {
   };
 
   return (
-    <div className="app-frame">
+    <div className={`app-frame ${mobileGridOpen ? "has-mobile-grid-open" : ""}`}>
       <ViewToggle onReset={resetDeal} onViewChange={setView} view={view} />
 
       <div className="calculator-shell" id="calculator-top">
@@ -190,6 +197,7 @@ export default function App() {
                 <div className="mobile-results" id="payment-results-mobile">
                   <ResultsPanel dealInput={dealInput} result={result} {...paymentTargetProps} />
                 </div>
+                <QuickJumpNav />
                 <DealerView
                   accordions={accordions}
                   addItem={addItem}
@@ -235,12 +243,14 @@ export default function App() {
           dealInput={dealInput}
           downPayments={gridDownPayments}
           onApplyScenario={applyGridScenario}
+          onMobileClose={() => setMobileGridOpen(false)}
           onDownPaymentChange={(index, value) =>
             setGridDownPayments((current) => current.map((item, itemIndex) => itemIndex === index ? value : item))
           }
           onRateChange={(term, value) => setGridRates((current) => ({ ...current, [term]: value }))}
           rates={gridRates}
           result={result}
+          mobileOpen={mobileGridOpen}
         />
       ) : null}
 

@@ -2290,3 +2290,334 @@ p {
     transition-duration: 0.01ms !important;
   }
 }
+
+/* Professional workspace pass: stronger grouping and a faster sales-desk flow. */
+.quick-jump-nav {
+  display: none;
+}
+
+.deal-grid {
+  grid-template-rows: auto auto;
+  align-items: stretch;
+}
+
+.deal-column {
+  display: contents;
+}
+
+.deal-section--vehicle {
+  grid-column: 1;
+  grid-row: 1;
+}
+
+.deal-section--trade {
+  grid-column: 2;
+  grid-row: 1;
+}
+
+.deal-section--taxes {
+  grid-column: 1;
+  grid-row: 2;
+}
+
+.deal-section--products {
+  grid-column: 2;
+  grid-row: 2;
+}
+
+.deal-section,
+.financing-panel,
+.target-panel,
+.payment-grid-section {
+  border-color: #4778a8;
+  box-shadow: 0 8px 22px rgba(4, 31, 63, 0.09);
+}
+
+.deal-section {
+  display: flex;
+  flex-direction: column;
+}
+
+.deal-section__header {
+  border-bottom-color: #183f67;
+  background: #0a416f;
+  color: #fff;
+}
+
+.deal-section__icon,
+.deal-section__chevron,
+.deal-section__title,
+.deal-section__summary {
+  color: #fff;
+}
+
+.deal-section__summary {
+  color: #d9e8f6;
+}
+
+.deal-section__content {
+  flex: 1;
+  background: #f3f7fb;
+}
+
+.money-input,
+.percent-input,
+.text-input {
+  border-color: #668fb8;
+  background: #fff;
+}
+
+.add-item-button {
+  min-height: 48px;
+  border: 2px dashed #6697c8;
+  background: #fff;
+  color: #0759b9;
+}
+
+.deal-section--products .section-note {
+  margin: 9px 0 0;
+  text-align: center;
+}
+
+.financing-panel {
+  border-color: #4778a8;
+  background: #f3f7fb;
+}
+
+.financing-panel__heading {
+  align-self: stretch;
+  margin: -11px 0 -11px -14px;
+  padding: 11px 15px;
+  background: #0a416f;
+  color: #fff;
+}
+
+.financing-panel__heading h2 {
+  color: #fff;
+}
+
+.target-panel__heading,
+.grid-heading {
+  border-bottom-color: #183f67;
+  background: #0a416f;
+}
+
+.target-panel__heading h2,
+.grid-heading h2 {
+  color: #fff;
+}
+
+.target-panel__heading p,
+.grid-heading p {
+  color: #d9e8f6;
+}
+
+.target-panel__heading .text-action {
+  color: #fff;
+}
+
+.target-panel__body,
+.grid-context {
+  background: #f3f7fb;
+}
+
+.target-panel__body.is-empty {
+  grid-template-columns: 1fr;
+}
+
+.target-panel__body.is-empty .target-setup {
+  border-right: 0;
+}
+
+.payment-grid-section .back-button {
+  border-color: #8fb4d8;
+}
+
+.deal-section,
+.financing-panel,
+.target-panel {
+  scroll-margin-top: 84px;
+}
+
+@media (max-width: 760px) {
+  body {
+    background: #dfeaf4;
+  }
+
+  body:has(.has-mobile-grid-open) {
+    overflow: hidden;
+  }
+
+  .app-header {
+    position: relative;
+    border-bottom-color: #123f69;
+    background: #062d53;
+  }
+
+  .brand,
+  .brand > span:last-child {
+    color: #fff;
+  }
+
+  .brand__rule {
+    background: #93b7d9;
+  }
+
+  .calculator-shell {
+    padding-top: 10px;
+  }
+
+  .page-intro:not(.page-intro--customer) {
+    display: none;
+  }
+
+  .mobile-results {
+    margin-bottom: 10px;
+  }
+
+  .quick-jump-nav {
+    position: sticky;
+    top: 8px;
+    z-index: 24;
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 5px;
+    margin-bottom: 10px;
+    padding: 5px;
+    border: 1.5px solid #5b83ab;
+    border-radius: 9px;
+    background: rgba(234, 243, 251, 0.96);
+    box-shadow: 0 6px 16px rgba(4, 31, 63, 0.16);
+    backdrop-filter: blur(10px);
+  }
+
+  .quick-jump-nav button {
+    min-width: 0;
+    min-height: 42px;
+    padding: 5px 2px;
+    border: 1px solid #7198bf;
+    border-radius: 6px;
+    background: #fff;
+    color: #0a416f;
+    font-size: 0.69rem;
+    font-weight: 800;
+  }
+
+  .quick-jump-nav button:first-child {
+    border-color: #0a416f;
+    background: #0a416f;
+    color: #fff;
+  }
+
+  .deal-grid {
+    grid-template-columns: 1fr;
+    grid-template-rows: none;
+    gap: 9px;
+  }
+
+  .deal-section--vehicle,
+  .deal-section--trade,
+  .deal-section--taxes,
+  .deal-section--products {
+    grid-column: 1;
+  }
+
+  .deal-section--vehicle { grid-row: 1; }
+  .deal-section--trade { grid-row: 2; }
+  .deal-section--taxes { grid-row: 3; }
+  .deal-section--products { grid-row: 4; }
+
+  .deal-section__header {
+    min-height: 49px;
+    padding: 8px 11px;
+  }
+
+  .deal-section__title-wrap {
+    flex-direction: row;
+    align-items: center;
+    justify-content: space-between;
+    width: 100%;
+  }
+
+  .deal-section__chevron {
+    color: #fff;
+  }
+
+  .deal-section__content {
+    background: #edf4fa;
+  }
+
+  #vehicle-content.is-open,
+  #trade-cash-content.is-open,
+  #taxes-fees-content.is-open {
+    gap: 7px;
+    padding: 8px;
+  }
+
+  #vehicle-content > .field-row,
+  #trade-cash-content > .field-row,
+  #taxes-fees-content > .field-row,
+  #taxes-fees-content > .choice-row {
+    min-height: 74px;
+    border-color: #86a8c8;
+    background: #fff;
+  }
+
+  #vehicle-content > .field-row {
+    min-height: 58px;
+  }
+
+  .financing-panel {
+    overflow: hidden;
+    padding-top: 0;
+  }
+
+  .financing-panel__heading {
+    margin: 0 -12px;
+    padding: 9px 12px;
+    border-bottom: 1px solid #183f67;
+  }
+
+  .target-panel__heading {
+    min-height: 58px;
+  }
+
+  .target-panel__heading .text-action {
+    color: #fff;
+  }
+
+  .payment-grid-section {
+    display: none;
+  }
+
+  .payment-grid-section.is-mobile-open {
+    position: fixed;
+    inset: 0;
+    z-index: 90;
+    display: block;
+    width: 100%;
+    max-height: 100dvh;
+    margin: 0;
+    overflow-y: auto;
+    border: 0;
+    border-radius: 0;
+    background: #e7eff7;
+    overscroll-behavior: contain;
+  }
+
+  .payment-grid-section.is-mobile-open .grid-heading {
+    position: sticky;
+    top: 0;
+    z-index: 2;
+  }
+
+  .payment-grid-section.is-mobile-open .back-button {
+    min-width: 118px;
+    padding: 6px 10px;
+    font-size: 0.72rem !important;
+  }
+
+  .has-mobile-grid-open .mobile-nav {
+    display: none;
+  }
+}

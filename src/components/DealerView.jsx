@@ -157,7 +157,7 @@ export default function DealerView({
             </div>
             {dealInput.plateMode === "new" ? (
               <FieldRow
-                helper={`Title ${formatCurrency(result.fees.titleFee)} added automatically`}
+                helper={`Title ${formatCurrency(result.isFinanced ? CALCULATION_DEFAULTS.financeTitleFee : CALCULATION_DEFAULTS.cashTitleFee)} added automatically`}
                 htmlFor="new-plate-amount"
                 label="New plate amount"
               >
@@ -170,11 +170,11 @@ export default function DealerView({
               </FieldRow>
             ) : (
               <div className="state-fee-line">
-                Transfer {formatCurrency(result.fees.plateTransferFee)}
+                Transfer {formatCurrency(CALCULATION_DEFAULTS.plateTransferFee)}
                 <span>+</span>
-                State fee {formatCurrency(result.fees.additionalTransferFee)}
+                State fee {formatCurrency(CALCULATION_DEFAULTS.additionalTransferFee)}
                 <span>+</span>
-                Title {formatCurrency(result.fees.titleFee)}
+                Title {formatCurrency(result.isFinanced ? CALCULATION_DEFAULTS.financeTitleFee : CALCULATION_DEFAULTS.cashTitleFee)}
               </div>
             )}
           </DealSection>
@@ -185,34 +185,37 @@ export default function DealerView({
             id="products-addons"
             onToggle={() => toggleAccordion("roll")}
             open={accordions.roll}
-            summary={formatWholeCurrency(result.optionalItemsTotal)}
+            summary={dealInput.optionalItems.length ? formatWholeCurrency(result.optionalItemsTotal) : "None added"}
             title="Products & add-ons"
           >
-            <div className="option-list__header" aria-hidden="true">
-              <span>Item</span>
-              <span>Amount</span>
-              <span>Tax</span>
-              <span />
-            </div>
-            <div className="option-list">
-              {dealInput.optionalItems.map((item, index) => (
+            {dealInput.optionalItems.length ? (
+              <>
+                <div className="option-list__header" aria-hidden="true">
+                  <span>Item</span>
+                  <span>Amount</span>
+                  <span>Tax</span>
+                  <span />
+                </div>
+                <div className="option-list">
+                  {dealInput.optionalItems.map((item, index) => (
                 <div className="option-row" key={item.id}>
                   <input
                     aria-label={`Name for product or add-on ${index + 1}`}
                     className="text-input"
                     onChange={(event) => updateItem(index, { name: event.target.value })}
+                    placeholder="Product name"
                     type="text"
                     value={item.name}
                   />
                   <MoneyInput
-                    ariaLabel={`${item.name} amount`}
+                    ariaLabel={`${item.name || `Product or add-on ${index + 1}`} amount`}
                     compact
                     onChange={(value) => updateItem(index, { amount: value })}
                     value={item.amount}
                   />
                   <label className="tax-check">
                     <input
-                      aria-label={`${item.name} is taxable`}
+                      aria-label={`${item.name || `Product or add-on ${index + 1}`} is taxable`}
                       checked={item.taxable}
                       onChange={(event) => updateItem(index, { taxable: event.target.checked })}
                       type="checkbox"
@@ -220,7 +223,7 @@ export default function DealerView({
                     <span>Tax</span>
                   </label>
                   <button
-                    aria-label={`Remove ${item.name}`}
+                    aria-label={`Remove ${item.name || `product or add-on ${index + 1}`}`}
                     className="icon-button"
                     onClick={() => removeItem(index)}
                     type="button"
@@ -228,19 +231,21 @@ export default function DealerView({
                     <TrashIcon size={20} />
                   </button>
                 </div>
-              ))}
-            </div>
+                  ))}
+                </div>
+              </>
+            ) : null}
             <button className="add-item-button" onClick={() => addItem()} type="button">
               <AddCircleIcon size={20} />
-              Add item
+              Add product or add-on
             </button>
-            <div className="subtotal-line">
-              <strong>Add-ons</strong>
-              <strong>{formatWholeCurrency(result.optionalItemsTotal)}</strong>
-            </div>
-            <p className="section-note">
-              Included in amount financed on finance deals and in the total on cash deals.
-            </p>
+            {dealInput.optionalItems.length ? (
+              <div className="subtotal-line">
+                <strong>Add-ons</strong>
+                <strong>{formatWholeCurrency(result.optionalItemsTotal)}</strong>
+              </div>
+            ) : null}
+            <p className="section-note">Add products only when they apply to this deal.</p>
           </DealSection>
         </div>
       </div>

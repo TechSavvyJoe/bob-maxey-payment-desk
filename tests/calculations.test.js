@@ -56,6 +56,15 @@ test('matrix 1: standard financed deal includes taxable fixed fees', () => {
   assert.equal(deal.totalInterest, 5_145.19);
 });
 
+test('blank deal stays at zero until a vehicle price is entered', () => {
+  const deal = calculateDeal({ salePrice: '', apr: '', termMonths: 72 });
+
+  assert.equal(deal.outTheDoor, 0);
+  assert.equal(deal.amountFinanced, 0);
+  assert.equal(deal.monthlyPayment, 0);
+  assert.equal(deal.fees.totalFees, 0);
+});
+
 test('matrix 2: down only reduces amount financed and 0% interest stays zero', () => {
   const deal = calculateDeal({
     salePrice: 25_000,

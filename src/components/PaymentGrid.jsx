@@ -14,6 +14,8 @@ export default function PaymentGrid({
   onRateChange,
   onDownPaymentChange,
   onApplyScenario,
+  onMobileClose,
+  mobileOpen = false,
 }) {
   const grid = useMemo(
     () =>
@@ -37,13 +39,16 @@ export default function PaymentGrid({
   });
 
   return (
-    <section className="payment-grid-section" id="payment-grid">
+    <section className={`payment-grid-section ${mobileOpen ? "is-mobile-open" : ""}`} id="payment-grid">
       <div className="grid-heading">
         <div>
           <h2>Payment grid</h2>
           <p>Compare terms, rates, and down payments without rebuilding the deal.</p>
         </div>
-        <button className="back-button" onClick={() => document.getElementById("calculator-top")?.scrollIntoView({ behavior: "smooth" })} type="button">
+        <button className="back-button" onClick={() => {
+          if (window.matchMedia("(max-width: 760px)").matches) onMobileClose?.();
+          else document.getElementById("calculator-top")?.scrollIntoView({ behavior: "smooth" });
+        }} type="button">
           <ArrowIcon direction="up" size={20} />
           Back to calculator
         </button>

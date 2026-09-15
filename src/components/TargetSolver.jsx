@@ -50,6 +50,17 @@ function resultLine(deal) {
 }
 
 function buildSuggestions({ dealInput, result, targetType, targetValue, gridRates }) {
+  if (targetValue === "" || Number(targetValue) <= 0) {
+    return {
+      direction: "reduce",
+      gap: 0,
+      metric: targetType === "outTheDoor" ? "outTheDoor" : "amountFinanced",
+      targetMetric: 0,
+      targetPaymentSolution: null,
+      suggestions: [],
+      empty: true,
+    };
+  }
   const targetPaymentSolution =
     targetType === "payment"
       ? solveAmountFinancedForPayment({
@@ -187,7 +198,7 @@ function buildSuggestions({ dealInput, result, targetType, targetValue, gridRate
         if (reduction >= 0.01) {
           addSuggestion({
             id: "option",
-            title: `Reduce ${dealInput.optionalItems[itemIndex].name}`,
+            title: `Reduce ${dealInput.optionalItems[itemIndex].name.trim() || "product or add-on"}`,
             value: `−${formatCurrency(reduction)}`,
             detail: resultLine(itemSolution.deal),
             amount: reduction,
@@ -286,6 +297,7 @@ export default function TargetSolver({
 
   const targetSuffix = targetType === "payment" ? "/mo" : "";
   const summary = (() => {
+    if (solution.empty) return "Enter a target amount to see adjustment options.";
     if (solution.gap < 0.01) return `The current ${metricLabel[targetType]} is already on target.`;
     if (solution.direction === "reduce") {
       return targetType === "payment"
@@ -321,7 +333,7 @@ export default function TargetSolver({
           </button>
         ) : null}
       </div>
-      <div className="target-panel__body">
+      <div className={`target-panel__body ${solution.empty ? "is-empty" : ""}`}>
         <div className="target-setup">
           <SegmentedControl
             className="target-tabs"

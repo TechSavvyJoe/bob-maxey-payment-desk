@@ -14,7 +14,7 @@ export default function DealSection({
   const contentId = `${id}-content`;
 
   return (
-    <section className={`deal-section ${className}`}>
+    <section className={`deal-section ${className}`} id={`${id}-section`}>
       <button
         aria-controls={contentId}
         aria-expanded={open}
