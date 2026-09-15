@@ -52,7 +52,6 @@ export default function PaymentGrid({
       <div className="grid-context">
         <span>{formatWholeCurrency(dealInput.salePrice)} selling price</span>
         <span>{formatWholeCurrency(result.amountBeforeCashDown)} before cash down</span>
-        <span>2026 MI trade tax credit {formatWholeCurrency(result.tradeTaxCredit)}</span>
       </div>
 
       <div className="desktop-rate-grid">

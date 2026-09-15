@@ -126,19 +126,7 @@ function buildSuggestions({ dealInput, result, targetType, targetValue, gridRate
     // A price-only solution is not always possible for very small or extreme targets.
   }
 
-  if (direction === "reduce") {
-    const nextRebate = dealInput.manufacturerRebate + amount;
-    const nextDeal = calculateDeal({ ...dealInput, manufacturerRebate: nextRebate });
-    addSuggestion({
-      id: "rebate",
-      title: "Add manufacturer rebate",
-      value: `+${formatCurrency(amount)}`,
-      detail: `${resultLine(nextDeal)} · only if available`,
-      amount,
-      patch: { manufacturerRebate: nextRebate },
-      iconDirection: "down",
-    });
-  } else {
+  if (direction === "increase") {
     addSuggestion({
       id: "roll-room",
       title: "Available product room",

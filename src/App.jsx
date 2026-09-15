@@ -9,7 +9,6 @@ import ViewToggle from "./components/ViewToggle.jsx";
 
 const INITIAL_DEAL = Object.freeze({
   salePrice: 38_750,
-  manufacturerRebate: 1_500,
   cashDown: 2_500,
   tradeAllowance: 12_000,
   tradePayoff: 15_200,

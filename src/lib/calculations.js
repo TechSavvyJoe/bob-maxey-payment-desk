@@ -266,10 +266,6 @@ export function calculateDeal(input = {}) {
   );
   const tradeAllowanceCents = nonNegativeCents(input.tradeAllowance ?? 0, 'Trade allowance');
   const tradePayoffCents = nonNegativeCents(input.tradePayoff ?? 0, 'Trade payoff');
-  const manufacturerRebateCents = nonNegativeCents(
-    input.manufacturerRebate ?? input.rebate ?? 0,
-    'Manufacturer rebate',
-  );
   const cashDownCents = nonNegativeCents(input.cashDown ?? input.downPayment ?? 0, 'Cash down');
   const additionalUpfrontCents = nonNegativeCents(
     input.upfrontAmount ?? 0,
@@ -306,12 +302,9 @@ export function calculateDeal(input = {}) {
   const plateTransferFeeCents = plateMode === 'transfer' ? DEFAULT_CENTS.plateTransferFee : 0;
   const additionalTransferFeeCents =
     plateMode === 'transfer' ? DEFAULT_CENTS.additionalTransferFee : 0;
-  const titleFeeCents =
-    plateMode === 'transfer'
-      ? isFinanced
-        ? DEFAULT_CENTS.financeTitleFee
-        : DEFAULT_CENTS.cashTitleFee
-      : 0;
+  const titleFeeCents = isFinanced
+    ? DEFAULT_CENTS.financeTitleFee
+    : DEFAULT_CENTS.cashTitleFee;
   const appliedNewPlateAmountCents = plateMode === 'new' ? newPlateAmountCents : 0;
   const plateFeesCents =
     plateTransferFeeCents +
@@ -336,8 +329,7 @@ export function calculateDeal(input = {}) {
     salePriceCents +
     totalFeesCents +
     optionalItemsTotalCents +
-    salesTaxCents -
-    manufacturerRebateCents;
+    salesTaxCents;
   const balanceAfterTradeCents = outTheDoorCents - tradeEquityCents;
   const customerCreditCents = Math.max(-balanceAfterTradeCents, 0);
 
@@ -368,11 +360,8 @@ export function calculateDeal(input = {}) {
   });
 
   const warnings = [];
-  if (outTheDoorCents < 0) {
-    warnings.push('The manufacturer rebate exceeds the out-the-door balance.');
-  }
   if (isFinanced && amountFinancedCents < 0) {
-    warnings.push('Credits exceed the balance. Reduce cash down, rebate, or trade equity.');
+    warnings.push('Credits exceed the balance. Reduce cash down or trade equity.');
   }
 
   const feeCents = {
@@ -395,7 +384,6 @@ export function calculateDeal(input = {}) {
     tradeEquity: tradeEquityCents,
     positiveEquity: positiveEquityCents,
     negativeEquity: negativeEquityCents,
-    manufacturerRebate: manufacturerRebateCents,
     cashDown: cashDownCents,
     taxableOptions: taxableOptionsCents,
     nonTaxableOptions: nonTaxableOptionsCents,
@@ -433,7 +421,6 @@ export function calculateDeal(input = {}) {
     tradeEquity: fromCents(tradeEquityCents),
     positiveEquity: fromCents(positiveEquityCents),
     negativeEquity: fromCents(negativeEquityCents),
-    manufacturerRebate: fromCents(manufacturerRebateCents),
     cashDown: fromCents(cashDownCents),
     optionalItems: optionalItems.map(({ amountCents: _amountCents, ...item }) => item),
     taxableOptions: fromCents(taxableOptionsCents),

@@ -20,7 +20,6 @@ export default function CustomerView({ dealInput, result, gridRates, paymentTarg
         <section className="customer-ledger">
           <h2>Selected deal</h2>
           <LedgerRow label="Vehicle price" value={formatCurrency(result.salePrice)} />
-          <LedgerRow label="Manufacturer rebate" value={`−${formatCurrency(result.manufacturerRebate)}`} />
           {result.optionalItemsTotal > 0 ? (
             <LedgerRow label="Selected options" value={`+${formatCurrency(result.optionalItemsTotal)}`} />
           ) : null}

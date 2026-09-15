@@ -56,10 +56,9 @@ test('matrix 1: standard financed deal includes taxable fixed fees', () => {
   assert.equal(deal.totalInterest, 5_145.19);
 });
 
-test('matrix 2: rebate is after tax, down only reduces amount financed, and 0% interest stays zero', () => {
+test('matrix 2: down only reduces amount financed and 0% interest stays zero', () => {
   const deal = calculateDeal({
     salePrice: 25_000,
-    manufacturerRebate: 2_000,
     cashDown: 3_000,
     apr: 0,
     termMonths: 60,
@@ -67,10 +66,10 @@ test('matrix 2: rebate is after tax, down only reduces amount financed, and 0% i
 
   assert.equal(deal.taxBase, 25_314);
   assert.equal(deal.salesTax, 1_518.84);
-  assert.equal(deal.outTheDoor, 24_863.84);
-  assert.equal(deal.amountFinanced, 21_863.84);
-  assert.equal(deal.payment, 364.4);
-  assert.equal(deal.totalOfPayments, 21_863.84);
+  assert.equal(deal.outTheDoor, 26_863.84);
+  assert.equal(deal.amountFinanced, 23_863.84);
+  assert.equal(deal.payment, 397.73);
+  assert.equal(deal.totalOfPayments, 23_863.84);
   assert.equal(deal.totalInterest, 0);
   assert.equal(deal.dueAtSigning, 3_000);
 });
@@ -125,27 +124,29 @@ test('matrix 4: negative equity can be rolled or paid upfront', () => {
   assert.equal(paidUpfront.dueAtSigning, 4_500);
 });
 
-test('matrix 5: manufacturer rebate and dealer price discount have different tax effects', () => {
-  const rebateDeal = calculateDeal({
+test('matrix 5: obsolete rebate keys cannot silently change a deal', () => {
+  const baseDeal = calculateDeal({
     salePrice: 30_000,
-    manufacturerRebate: 3_000,
     apr: 5,
     termMonths: 60,
   });
-  const discountDeal = calculateDeal({ salePrice: 27_000, apr: 5, termMonths: 60 });
+  const legacyKeys = calculateDeal({
+    salePrice: 30_000,
+    manufacturerRebate: 3_000,
+    rebate: 5_000,
+    apr: 5,
+    termMonths: 60,
+  });
 
-  assert.equal(rebateDeal.salesTax, 1_818.84);
-  assert.equal(rebateDeal.amountFinanced, 29_163.84);
-  assert.equal(rebateDeal.payment, 550.36);
-  assert.equal(discountDeal.salesTax, 1_638.84);
-  assert.equal(discountDeal.amountFinanced, 28_983.84);
-  assert.equal(discountDeal.payment, 546.96);
+  assert.equal(legacyKeys.outTheDoor, baseDeal.outTheDoor);
+  assert.equal(legacyKeys.amountFinanced, baseDeal.amountFinanced);
+  assert.equal(legacyKeys.payment, baseDeal.payment);
+  assert.equal('manufacturerRebate' in legacyKeys, false);
 });
 
 test('matrix 6: only optional items marked taxable enter the tax base', () => {
   const deal = calculateDeal({
     salePrice: 32_000,
-    manufacturerRebate: 1_000,
     cashDown: 2_000,
     apr: 8,
     termMonths: 72,
@@ -159,12 +160,12 @@ test('matrix 6: only optional items marked taxable enter the tax base', () => {
   assert.equal(deal.nonTaxableOptions, 1_800);
   assert.equal(deal.taxBase, 32_814);
   assert.equal(deal.salesTax, 1_968.84);
-  assert.equal(deal.outTheDoor, 35_613.84);
-  assert.equal(deal.amountFinanced, 33_613.84);
-  assert.equal(deal.payment, 589.36);
+  assert.equal(deal.outTheDoor, 36_613.84);
+  assert.equal(deal.amountFinanced, 34_613.84);
+  assert.equal(deal.payment, 606.89);
 });
 
-test('matrix 7: new plate amount replaces every transfer and title fee', () => {
+test('matrix 7: new plate amount replaces transfer fees while title remains automatic', () => {
   const newPlate = calculateDeal({
     salePrice: 28_000,
     plateMode: 'new',
@@ -182,17 +183,23 @@ test('matrix 7: new plate amount replaces every transfer and title fee', () => {
   assert.equal(newPlate.fees.newPlateAmount, 250);
   assert.equal(newPlate.fees.plateTransferFee, 0);
   assert.equal(newPlate.fees.additionalTransferFee, 0);
-  assert.equal(newPlate.fees.titleFee, 0);
-  assert.equal(newPlate.fees.totalFees, 564);
+  assert.equal(newPlate.fees.titleFee, 16);
+  assert.equal(newPlate.fees.totalFees, 580);
   assert.equal(newPlate.salesTax, 1_698.84);
-  assert.equal(newPlate.outTheDoor, 30_262.84);
-  assert.equal(newPlate.payment, 592.13);
+  assert.equal(newPlate.outTheDoor, 30_278.84);
+  assert.equal(newPlate.payment, 592.44);
   assert.equal(transfer.outTheDoor, 30_043.84);
-  assert.equal(newPlate.outTheDoor - transfer.outTheDoor, 219);
+  assert.equal(newPlate.outTheDoor - transfer.outTheDoor, 235);
 });
 
 test('matrix 8: cash transfer deal uses the $15 title fee', () => {
   const deal = calculateDeal({ salePrice: 20_000, dealType: 'cash' });
+  const newPlate = calculateDeal({
+    salePrice: 20_000,
+    dealType: 'cash',
+    plateMode: 'new',
+    newPlateAmount: 100,
+  });
 
   assert.equal(deal.fees.titleFee, 15);
   assert.equal(deal.fees.totalFees, 344);
@@ -202,6 +209,9 @@ test('matrix 8: cash transfer deal uses the $15 title fee', () => {
   assert.equal(deal.dueAtSigning, 21_562.84);
   assert.equal(deal.amountFinanced, 0);
   assert.equal(deal.payment, 0);
+  assert.equal(newPlate.fees.titleFee, 15);
+  assert.equal(newPlate.fees.newPlateAmount, 100);
+  assert.equal(newPlate.fees.totalFees, 429);
 });
 
 test('matrix 9: reverse payment and dealer-price solvers hit target cents', () => {
@@ -251,7 +261,6 @@ test('matrix 9: reverse payment and dealer-price solvers hit target cents', () =
 test('matrix 10: target amount financed exposes the remaining gap after removing an item', () => {
   const base = {
     salePrice: 32_000,
-    manufacturerRebate: 1_000,
     cashDown: 2_000,
     apr: 8,
     termMonths: 72,
@@ -261,7 +270,7 @@ test('matrix 10: target amount financed exposes the remaining gap after removing
     ],
   };
   const deal = calculateDeal(base);
-  assert.equal(deal.cents.amountFinanced - toCents(33_000), toCents(613.84));
+  assert.equal(deal.cents.amountFinanced - toCents(33_000), toCents(1_613.84));
 
   const removeAccessory = solveOptionalItemAmountForTarget(base, {
     itemIndex: 1,
@@ -269,11 +278,11 @@ test('matrix 10: target amount financed exposes the remaining gap after removing
     metric: 'amountFinanced',
   });
   assert.equal(removeAccessory.optionalItemAmount, 0);
-  assert.equal(removeAccessory.deal.amountFinanced, 33_083.84);
-  assert.equal(removeAccessory.difference, 83.84);
+  assert.equal(removeAccessory.deal.amountFinanced, 34_083.84);
+  assert.equal(removeAccessory.difference, 1_083.84);
   assert.equal(removeAccessory.exact, false);
 
-  const solvedWithExtraDown = calculateDeal({ ...base, cashDown: 2_613.84 });
+  const solvedWithExtraDown = calculateDeal({ ...base, cashDown: 3_613.84 });
   assert.equal(solvedWithExtraDown.amountFinanced, 33_000);
   assert.equal(solvedWithExtraDown.payment, 578.6);
 });
@@ -290,9 +299,6 @@ test('matrix 11: OTD solver accounts for tax rounding at every candidate cent', 
   assert.equal(solved.deal.outTheDoor, 31_000);
   assert.equal(solved.exact, true);
 
-  const postTaxRebate = calculateDeal({ salePrice: 30_000, manufacturerRebate: 1_163.84 });
-  assert.equal(postTaxRebate.outTheDoor, 31_000);
-  assert.equal(postTaxRebate.salesTax, 1_818.84);
 });
 
 test('matrix 12: RATE grid uses total down and independently editable row APRs', () => {
@@ -395,7 +401,7 @@ test('excess trade equity becomes a cash customer credit instead of negative due
 });
 
 test('negative amount financed remains visible while payment is zero with a warning', () => {
-  const deal = calculateDeal({ salePrice: 1_000, manufacturerRebate: 10_000 });
+  const deal = calculateDeal({ salePrice: 1_000, cashDown: 10_000 });
 
   assert.ok(deal.amountFinanced < 0);
   assert.equal(deal.payment, 0);

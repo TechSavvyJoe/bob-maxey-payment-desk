@@ -103,10 +103,8 @@ export default function ResultsPanel({
       </section>
 
       {result.isFinanced ? (
-        <section className="result-totals">
+        <section className="result-totals result-totals--single">
           <BreakdownRow label="Amount financed" value={formatCurrency(result.amountFinanced)} />
-          <BreakdownRow label="Total interest" value={formatCurrency(result.totalInterest)} />
-          <BreakdownRow label="Total of payments" value={formatCurrency(result.totalOfPayments)} />
         </section>
       ) : (
         <section className="result-totals">
@@ -127,7 +125,6 @@ export default function ResultsPanel({
           <BreakdownRow label="Taxable fees" value={`+${formatCurrency(result.fees.taxableFixedFees)}`} />
           <BreakdownRow label="Sales tax" value={`+${formatCurrency(result.salesTax)}`} />
           <BreakdownRow label="State fees" value={`+${formatCurrency(result.fees.plateFees)}`} />
-          <BreakdownRow label="Manufacturer rebate" value={`−${formatCurrency(result.manufacturerRebate)}`} />
           <BreakdownRow label="Out-the-door" strong value={formatCurrency(result.outTheDoor)} />
           {result.isFinanced ? (
             <>

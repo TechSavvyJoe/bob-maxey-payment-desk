@@ -254,6 +254,14 @@ p {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 14px;
+  align-items: start;
+}
+
+.deal-column {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+  gap: 14px;
 }
 
 .deal-section,
@@ -979,6 +987,15 @@ p {
   background: #08284a;
 }
 
+.result-totals--single {
+  grid-template-columns: 1fr;
+}
+
+.result-totals--single .breakdown-row {
+  min-height: 58px;
+  border-right: 0;
+}
+
 .result-totals .breakdown-row {
   flex-direction: column;
   align-items: center;
@@ -1298,13 +1315,13 @@ p {
   display: grid;
   grid-template-columns: minmax(0, 1.55fr) minmax(360px, 0.85fr);
   gap: 20px;
-  align-items: stretch;
+  align-items: start;
 }
 
 .customer-layout > .results-panel {
   position: relative;
   top: auto;
-  height: 100%;
+  height: auto;
 }
 
 .customer-content {
@@ -1660,6 +1677,10 @@ p {
     gap: 9px;
   }
 
+  .deal-column {
+    gap: 9px;
+  }
+
   .deal-section,
   .financing-panel,
   .target-panel,
@@ -1722,6 +1743,17 @@ p {
     border: 1px solid #afc5dc;
     border-radius: 7px;
     background: #f8fbfe;
+  }
+
+  #vehicle-content > .field-row {
+    grid-column: 1 / -1;
+    min-height: 62px;
+    flex-direction: row;
+    align-items: center;
+  }
+
+  #vehicle-content > .field-row .money-input {
+    width: min(158px, 49%);
   }
 
   #vehicle-content > .field-row .money-input,
