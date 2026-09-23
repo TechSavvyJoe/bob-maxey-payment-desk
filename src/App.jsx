@@ -8,6 +8,16 @@ import QuickJumpNav from "./components/QuickJumpNav.jsx";
 import ResultsPanel from "./components/ResultsPanel.jsx";
 import ViewToggle from "./components/ViewToggle.jsx";
 
+// Default rate-grid APRs: 6% through 60 months, 6.5% at 72, 7% at 84.
+// These are just starting points — every rate is editable per deal.
+const DEFAULT_APR_BY_TERM = Object.freeze({
+  36: 6,
+  48: 6,
+  60: 6,
+  72: 6.5,
+  84: 7,
+});
+
 const INITIAL_DEAL = Object.freeze({
   salePrice: "",
   cashDown: "",
@@ -17,18 +27,12 @@ const INITIAL_DEAL = Object.freeze({
   plateMode: "transfer",
   newPlateAmount: "",
   rollNegativeEquity: true,
-  apr: "",
+  apr: DEFAULT_APR_BY_TERM[72],
   termMonths: 72,
   optionalItems: [],
 });
 
-const INITIAL_RATES = Object.freeze({
-  36: "",
-  48: "",
-  60: "",
-  72: "",
-  84: "",
-});
+const INITIAL_RATES = Object.freeze({ ...DEFAULT_APR_BY_TERM });
 
 const INITIAL_DOWN_PAYMENTS = Object.freeze(["", "", "", ""]);
 
@@ -50,6 +54,7 @@ export default function App() {
   });
   const [mobileGridOpen, setMobileGridOpen] = useState(false);
   const [solverExpanded, setSolverExpanded] = useState(false);
+  const [lastRoll, setLastRoll] = useState(null);
   const [accordions, setAccordions] = useState({
     vehicle: true,
     trade: true,
@@ -108,15 +113,30 @@ export default function App() {
     }));
   };
 
-  const applyItemPatch = ({ index, amount }) => updateItem(index, { amount });
+  // One-step undo for target-solver suggestions: capture the deal exactly as
+  // it was right before a suggestion is applied, so "roll to a target" is
+  // always reversible.
+  const captureUndo = (label) => setLastRoll({ dealInput, label });
 
-  const applyPatch = (patch) => {
+  const applyItemPatch = ({ index, amount }, label) => {
+    captureUndo(label);
+    updateItem(index, { amount });
+  };
+
+  const applyPatch = (patch, label) => {
+    captureUndo(label);
     setDealInput((current) => ({ ...current, ...patch }));
     if (patch.termMonths && patch.apr !== undefined) {
       setGridRates((current) => ({ ...current, [patch.termMonths]: patch.apr }));
     } else if (patch.apr !== undefined) {
       setGridRates((current) => ({ ...current, [dealInput.termMonths]: patch.apr }));
     }
+  };
+
+  const undoLastRoll = () => {
+    if (!lastRoll) return;
+    setDealInput(lastRoll.dealInput);
+    setLastRoll(null);
   };
 
   const resetDeal = () => {
@@ -128,6 +148,7 @@ export default function App() {
     setMobileGridOpen(false);
     setSolverExpanded(false);
     setAccordions({ vehicle: true, trade: true, taxes: true, roll: true });
+    setLastRoll(null);
     itemCounter.current = 1;
   };
 
@@ -156,7 +177,12 @@ export default function App() {
     onExpandedChange: setSolverExpanded,
     onApplyPatch: applyPatch,
     onApplyItemPatch: applyItemPatch,
-    onAddRoomItem: (amount) => addItem({ amount }),
+    onAddRoomItem: (amount, label) => {
+      captureUndo(label);
+      addItem({ amount });
+    },
+    lastRoll,
+    onUndoRoll: undoLastRoll,
     targetInputRef,
   };
 

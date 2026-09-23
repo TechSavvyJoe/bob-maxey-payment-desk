@@ -11,7 +11,7 @@ import {
 } from "../lib/calculations.js";
 import { formatCurrency, formatNumber, formatWholeCurrency } from "../lib/formatters.js";
 import { MoneyInput, SegmentedControl } from "./Fields.jsx";
-import { ArrowIcon } from "./Icons.jsx";
+import { ArrowIcon, ResetIcon } from "./Icons.jsx";
 
 const STANDARD_TERMS = [36, 48, 60, 72, 84];
 
@@ -284,6 +284,8 @@ export default function TargetSolver({
   onApplyPatch,
   onApplyItemPatch,
   onAddRoomItem,
+  lastRoll,
+  onUndoRoll,
   targetInputRef,
 }) {
   const targetValue = targetValues[targetType];
@@ -310,9 +312,9 @@ export default function TargetSolver({
   })();
 
   const applySuggestion = (suggestion) => {
-    if (suggestion.patch) onApplyPatch(suggestion.patch);
-    if (suggestion.itemPatch) onApplyItemPatch(suggestion.itemPatch);
-    if (suggestion.addRoomItem) onAddRoomItem(suggestion.addRoomItem);
+    if (suggestion.patch) onApplyPatch(suggestion.patch, suggestion.title);
+    if (suggestion.itemPatch) onApplyItemPatch(suggestion.itemPatch, suggestion.title);
+    if (suggestion.addRoomItem) onAddRoomItem(suggestion.addRoomItem, suggestion.title);
   };
 
   return (
@@ -333,6 +335,17 @@ export default function TargetSolver({
           </button>
         ) : null}
       </div>
+      {lastRoll ? (
+        <div className="target-undo" role="status">
+          <span>
+            Applied <strong>{lastRoll.label}</strong>.
+          </span>
+          <button className="undo-button" onClick={onUndoRoll} type="button">
+            <ResetIcon size={17} />
+            Undo, go back
+          </button>
+        </div>
+      ) : null}
       <div className={`target-panel__body ${solution.empty ? "is-empty" : ""}`}>
         <div className="target-setup">
           <SegmentedControl
@@ -369,15 +382,17 @@ export default function TargetSolver({
                 <strong>{suggestion.title}</strong>
                 <span>{suggestion.detail}</span>
               </div>
-              <strong className="suggestion__value">{suggestion.value}</strong>
-              <button
-                aria-label={`Apply ${suggestion.title}`}
-                className="apply-button"
-                onClick={() => applySuggestion(suggestion)}
-                type="button"
-              >
-                Apply
-              </button>
+              <div className="suggestion__action">
+                <strong className="suggestion__value">{suggestion.value}</strong>
+                <button
+                  aria-label={`Apply ${suggestion.title}`}
+                  className="apply-button"
+                  onClick={() => applySuggestion(suggestion)}
+                  type="button"
+                >
+                  Apply
+                </button>
+              </div>
             </article>
           ))}
         </div>
