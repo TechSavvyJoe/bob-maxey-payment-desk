@@ -38,7 +38,7 @@ test.beforeEach(async ({ page }) => {
   // This makes dated financial rules deterministic on later CI run dates.
   await page.clock.setFixedTime(new Date('2026-09-24T16:00:00Z'));
   await page.goto('/');
-  await expect(page.getByRole('heading', { name: 'Deal worksheet', exact: true })).toBeVisible();
+  await expect(page.locator('#worksheet-heading')).toBeVisible();
 });
 
 test('successive payment targets from blank down preserve the deal and reach both payments', async ({ page }) => {
@@ -107,13 +107,19 @@ for (const plateAmount of [0, 250]) {
 
 test('an invalid date keeps the last valid deal and prevents customer presentation until corrected', async ({ page }) => {
   await enterVehicle(page);
+  const details = page.locator('details.deal-details');
+  await details.locator('summary').click();
   const date = page.locator('#estimate-date');
   // Clearing is a browser-supported invalid required-date state on all engines.
   await date.fill('');
   await expect(date).toHaveAttribute('aria-invalid', 'true');
+  await details.locator('summary').click();
+  await expect(date).toBeHidden();
   await page.getByRole('button', { name: 'Customer view', exact: true }).click();
-  await expect(page.getByRole('heading', { name: 'Deal worksheet', exact: true })).toBeVisible();
+  await expect(page.locator('#worksheet-heading')).toBeVisible();
   await expect(page.locator('.customer-layout')).toHaveCount(0);
+  await expect(date).toBeVisible();
+  await expect(date).toBeFocused();
   await expect(selectedPayment(page)).toHaveText('$540.67');
   await date.fill('2026-09-24');
   await expect(date).not.toHaveAttribute('aria-invalid', 'true');

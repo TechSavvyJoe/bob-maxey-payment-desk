@@ -3,7 +3,7 @@ import { CALCULATION_DEFAULTS, RATE_GRID_DEFAULTS } from "../lib/calculations.js
 import { formatCurrency, formatWholeCurrency } from "../lib/formatters.js";
 import DealSection from "./DealSection.jsx";
 import { FieldRow, MoneyInput, PercentInput, SegmentedControl } from "./Fields.jsx";
-import { PlusIcon, TrashIcon } from "./Icons.jsx";
+import { AddCircleIcon, CarIcon, PercentIcon, PlusIcon, ReceiptIcon, TradeIcon, TrashIcon } from "./Icons.jsx";
 import TargetSolver from "./TargetSolver.jsx";
 import { useFieldValidation } from "./ValidationContext.jsx";
 
@@ -72,22 +72,17 @@ export default function DealerView({
     <main className="dealer-workspace" aria-label="Deal worksheet">
       <div className="worksheet-panel">
         <div className="deal-grid">
-          <DealSection id="vehicle" className="deal-section--vehicle" title="Vehicle"
+          <div className="deal-column">
+          <DealSection id="vehicle" className="deal-section--vehicle" title="Vehicle" icon={CarIcon}
             open={accordions.vehicle} onToggle={() => toggleAccordion("vehicle")}
             summary={dealInput.salePrice === "" ? "Enter a price" : formatWholeCurrency(dealInput.salePrice)}>
-            <div className="choice-row">
-              <span>Purchase type</span>
-              <SegmentedControl label="Purchase type" value={dealInput.dealType}
-                onChange={(value) => updateField("dealType", value)}
-                options={[{ label: "Finance", value: "finance" }, { label: "Cash", value: "cash" }]} />
-            </div>
             <FieldRow htmlFor="sale-price" label="Selling price">
               <MoneyInput ariaLabel="Selling price" id="sale-price" required value={dealInput.salePrice}
                 onChange={(value) => updateField("salePrice", value)} />
             </FieldRow>
           </DealSection>
-          <DealSection id="trade-cash" className="deal-section--trade" title="Trade & cash"
-            open={accordions.trade} onToggle={() => toggleAccordion("trade")} summary={equitySummary}>
+          <DealSection id="trade-cash" className="deal-section--trade" title="Trade & cash" icon={TradeIcon}
+            open={accordions.trade} onToggle={() => toggleAccordion("trade")} summary={result.isFinanced ? `${formatWholeCurrency(dealInput.cashDown)} down · ${equitySummary}` : equitySummary}>
             {result.isFinanced ? (
               <FieldRow htmlFor="cash-down" label="Cash down">
                 <MoneyInput ariaLabel="Cash down" id="cash-down" value={dealInput.cashDown}
@@ -114,7 +109,9 @@ export default function DealerView({
               </label>
             ) : null}
           </DealSection>
-          <DealSection id="taxes-fees" className="deal-section--taxes" title="Taxes & registration"
+          </div>
+          <div className="deal-column">
+          <DealSection id="taxes-fees" className="deal-section--taxes" title="Taxes & registration" icon={ReceiptIcon}
             open={accordions.taxes} onToggle={() => toggleAccordion("taxes")}
             summary={`${formatWholeCurrency(taxesAndFees)} total`}>
             <dl className="fixed-fees">
@@ -122,6 +119,12 @@ export default function DealerView({
               <div><dt>Document fee <small>Taxable</small></dt><dd>{formatCurrency(result.fees.documentFee)}</dd></div>
               <div><dt>CRV fee <small>Taxable · store policy</small></dt><dd>{formatCurrency(result.fees.crvFee)}</dd></div>
             </dl>
+            <div className="choice-row">
+              <span>Purchase type</span>
+              <SegmentedControl label="Purchase type" value={dealInput.dealType}
+                onChange={(value) => updateField("dealType", value)}
+                options={[{ label: "Finance", value: "finance" }, { label: "Cash", value: "cash" }]} />
+            </div>
             <div className="choice-row">
               <span>Registration</span>
               <SegmentedControl label="Plate type" value={dealInput.plateMode}
@@ -140,7 +143,7 @@ export default function DealerView({
                 {" · "}Title {formatCurrency(result.fees.titleFee)}</p>
             )}
           </DealSection>
-          <DealSection id="products-addons" className="deal-section--products" title="Products & add-ons"
+          <DealSection id="products-addons" className="deal-section--products" title="Products & add-ons" icon={AddCircleIcon}
             open={accordions.roll} onToggle={() => toggleAccordion("roll")}
             summary={dealInput.optionalItems.length ? formatWholeCurrency(result.optionalItemsTotal) : "None selected"}>
             <div className="option-list">
@@ -183,10 +186,11 @@ export default function DealerView({
             </button>
             <p className="section-note">Optional products only. Verify price, eligibility, and tax treatment.</p>
           </DealSection>
+          </div>
         </div>
         {result.isFinanced ? (
           <section className="financing-panel" aria-labelledby="financing-heading">
-            <div className="financing-panel__heading"><h2 id="financing-heading">Financing</h2></div>
+            <div className="financing-panel__heading"><PercentIcon size={22} /><h2 id="financing-heading">Financing</h2></div>
             <div className="financing-panel__body">
               <FieldRow htmlFor="apr" label="APR" helper="Assumed annual percentage rate">
                 <PercentInput ariaLabel="Annual percentage rate" id="apr" value={dealInput.apr}

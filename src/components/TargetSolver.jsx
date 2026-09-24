@@ -2,7 +2,7 @@ import { useMemo } from 'react';
 import { buildSuggestions } from '../lib/suggestions.js';
 import { formatCurrency } from '../lib/formatters.js';
 import { MoneyInput, SegmentedControl } from './Fields.jsx';
-import { ArrowIcon, ResetIcon } from './Icons.jsx';
+import { ArrowIcon, ResetIcon, TargetIcon } from './Icons.jsx';
 
 const labels = { payment: 'payment', outTheDoor: 'out-the-door total', amountFinanced: 'amount financed' };
 
@@ -27,7 +27,7 @@ export default function TargetSolver({ dealInput, result, targetType, targetValu
     if (suggestion.addRoomItem) onAddRoomItem(suggestion.addRoomItem, suggestion.title);
   };
   return <section className="target-panel" id="target-solver" aria-labelledby="target-heading">
-    <div className="target-panel__heading"><div><h2 id="target-heading" tabIndex={-1}>Set a target</h2><p>See what changes, then choose an option.</p></div>
+    <div className="target-panel__heading"><div><h2 id="target-heading" tabIndex={-1}><TargetIcon size={22} />Set a target</h2><p>Choose your number. Compare the ways to get there.</p></div>
       {solution.suggestions.length > 3 ? <button className="text-action" aria-controls="suggestion-list" aria-expanded={expanded} onClick={() => onExpandedChange(!expanded)} type="button">{expanded ? 'Show fewer' : 'See all options'}<ArrowIcon direction={expanded ? 'up' : 'right'} size={18} /></button> : null}
     </div>
     {lastRoll ? <div className="target-undo" role="status"><span>Applied <strong>{lastRoll.label}</strong>. Undo is available until your next edit.</span><button className="undo-button" type="button" onClick={onUndoRoll}><ResetIcon size={17} />Undo adjustment</button></div> : null}

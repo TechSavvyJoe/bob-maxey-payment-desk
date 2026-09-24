@@ -3,13 +3,18 @@ import AxeBuilder from '@axe-core/playwright';
 
 test.beforeEach(async ({ page }) => {
   await page.goto('/');
+  await expect(page.locator('#worksheet-heading')).toBeVisible();
+  await page.locator('details.deal-details > summary').click();
   await page.getByLabel('Estimate date').fill('2026-09-24');
+  await page.locator('details.deal-details > summary').click();
   await page.getByLabel('Selling price', { exact: true }).fill('30000');
   await page.getByLabel('Selling price', { exact: true }).blur();
 });
 
 test('product categories, explicit Other tax treatment, and complete customer export', async ({ page }, testInfo) => {
+  await page.locator('details.deal-details > summary').click();
   await page.getByLabel('Vehicle / stock reference').fill('Test Explorer / stock 123');
+  await page.locator('details.deal-details > summary').click();
   await page.getByRole('button', { name: 'Add product', exact: true }).click();
   await expect(page.getByLabel('Product 1 type')).toHaveValue('service-contract');
   await expect(page.getByLabel('Product 1 type').locator('option')).toHaveText(['Service Contract', 'Gap', 'Other']);
@@ -22,7 +27,7 @@ test('product categories, explicit Other tax treatment, and complete customer ex
   await page.getByLabel('Name for product or add-on 3').fill('Accessories');
   await page.getByLabel('Accessories amount').fill('1000');
   await page.getByRole('button', { name: 'Customer view', exact: true }).click();
-  await expect(page.getByRole('heading', { name: 'Deal worksheet', exact: true })).toBeVisible();
+  await expect(page.locator('#worksheet-heading')).toBeVisible();
   await expect(page.getByLabel('Tax treatment for Accessories')).toBeFocused();
   await page.getByLabel('Tax treatment for Accessories').selectOption('taxable');
   await page.getByRole('button', { name: 'Customer view', exact: true }).click();
@@ -115,7 +120,7 @@ test('an invalid mobile grid rate can be recovered after returning to the worksh
   const rate = page.getByLabel('APR for 60 months', { exact: true }).filter({ visible: true });
   await rate.fill('6x');
   await page.getByRole('button', { name: 'Back to calculator' }).click();
-  await expect(page.getByRole('heading', { name: 'Deal worksheet', exact: true })).toBeVisible();
+  await expect(page.locator('#worksheet-heading')).toBeVisible();
   await page.getByRole('button', { name: 'Customer view', exact: true }).click();
   await expect(page.getByRole('heading', { name: 'Payment grid', exact: true })).toBeVisible();
   await expect(rate).toBeFocused();

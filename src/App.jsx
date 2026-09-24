@@ -29,6 +29,7 @@ export default function App() {
   const [targetValues, setTargetValues] = useState({ payment: '', outTheDoor: '', amountFinanced: '' });
   const [solverExpanded, setSolverExpanded] = useState(false);
   const [accordions, setAccordions] = useState(allOpen);
+  const [contextOpen, setContextOpen] = useState(false);
   const [fieldErrors, setFieldErrors] = useState({});
   const targetInputRef = useRef(null);
   const reportError = useCallback((id, error) => setFieldErrors(current => {
@@ -57,6 +58,7 @@ export default function App() {
     setAccordions(allOpen());
     const errorId = Object.keys(fieldErrors)[0];
     const field = document.getElementById(errorId);
+    if (field?.closest('.deal-details')) setContextOpen(true);
     if (isMobile()) dispatch({ type: 'grid-visibility', open: Boolean(field?.closest('#payment-grid')) });
     requestAnimationFrame(() => {
       const destination = document.getElementById(errorId);
@@ -86,7 +88,7 @@ export default function App() {
     if (hasDeal && !window.confirm('Reset this deal? All figures, trade, and products will be cleared.')) return;
     dispatch({ type: 'reset' });
     setTargetType('payment'); setTargetValues({ payment: '', outTheDoor: '', amountFinanced: '' });
-    setSolverExpanded(false); setAccordions(allOpen()); setFieldErrors({});
+    setSolverExpanded(false); setAccordions(allOpen()); setFieldErrors({}); setContextOpen(false);
     focusDestination('worksheet-heading');
   };
   const activatePaymentTarget = value => {
@@ -131,13 +133,16 @@ export default function App() {
           {view === 'dealer' ? <>
             <div className="calculator-layout">
               <div className="calculator-left">
-                <div className="page-intro"><h1 id="worksheet-heading" tabIndex={-1}>Deal worksheet</h1><p>Build an estimate. Compare the options.</p></div>
+                <div className="page-intro"><h1 id="worksheet-heading" tabIndex={-1}>Build the deal. See the payment.</h1><p>Adjust the figures, compare your options, and see the complete deal.</p></div>
                 <div className="mobile-results" id="payment-results-mobile" tabIndex={-1}><ResultsPanel {...summaryProps} /></div>
                 <QuickJumpNav />
+                <details className="deal-details" open={contextOpen} onToggle={event => setContextOpen(event.currentTarget.open)}>
+                <summary><strong>Deal details</strong><span>{dealInput.vehicleDescription || 'Vehicle reference & estimate date'}</span><time dateTime={dealInput.dealDate}>{dealInput.dealDate}</time></summary>
                 <div className="deal-context">
                   <label htmlFor="vehicle-reference">Vehicle / stock reference <span>Optional</span><input id="vehicle-reference" className="text-input" type="text" maxLength={100} value={dealInput.vehicleDescription} onChange={e => updateField('vehicleDescription', e.target.value)} placeholder="e.g. 2024 Explorer · H12345" /></label>
                   <EstimateDateField value={dealInput.dealDate} onChange={value => updateField('dealDate', value)} />
                 </div>
+                </details>
                 <DealerView accordions={accordions} addItem={preset => dispatch({ type: 'add-item', preset })} dealInput={dealInput}
                   removeItem={index => dispatch({ type: 'remove-item', index })} result={result} targetProps={targetProps}
                   toggleAccordion={name => setAccordions(current => ({ ...current, [name]: !current[name] }))}
