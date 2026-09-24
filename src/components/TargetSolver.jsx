@@ -14,6 +14,7 @@ export default function TargetSolver({ dealInput, result, targetType, targetValu
   const suggestions = expanded ? solution.suggestions : solution.suggestions.slice(0, 3);
   const disabled = hasInputErrors || !result.isComplete || !canCompare;
   const summary = hasInputErrors ? 'Correct the highlighted figures to compare adjustments.'
+    : !(result.salePrice > 0) ? 'Start with the selling price, then enter the payment or total you want to reach.'
     : !canCompare ? 'Complete the estimate and product tax choices before applying adjustments.'
     : solution.error || (solution.empty ? 'Enter a target to see the changes available.'
       : solution.alreadyMet ? `Your current ${labels[targetType]} already matches this target.`
@@ -41,12 +42,15 @@ export default function TargetSolver({ dealInput, result, targetType, targetValu
       <div className="suggestion-list" id="suggestion-list">
         {!suggestions.length ? <p className="suggestion-empty">{solution.alreadyMet ? 'No adjustment is needed.' : solution.empty ? 'Your comparison options will appear here.' : 'No supported adjustment is available for this target.'}</p> : null}
         {suggestions.map(suggestion => <article className="suggestion" key={suggestion.id}>
-          <ArrowIcon direction={suggestion.iconDirection} size={21} />
-          <div className="suggestion__copy"><strong>{suggestion.title}</strong><span>{suggestion.detail}</span>
-            {suggestion.previewDeal ? <dl className="suggestion-metrics"><div><dt>Cash due</dt><dd>{formatCurrency(suggestion.previewDeal.dueAtSigning)}</dd></div><div><dt>Amount financed</dt><dd>{formatCurrency(suggestion.previewDeal.amountFinanced)}</dd></div></dl> : null}
-            <span className={`suggestion-status ${suggestion.withinTarget ? 'is-met' : ''}`}>{suggestion.requiresProductSelection ? 'Choose and name the product before presenting' : suggestion.exact ? 'Meets target' : suggestion.withinTarget ? 'Within target' : `${formatCurrency(suggestion.remainingGap)} remaining to target`}</span>
+          <div className="suggestion__heading"><ArrowIcon direction={suggestion.iconDirection} size={21} /><div className="suggestion__identity"><h3>{suggestion.title}</h3><strong className="suggestion__value">{suggestion.value}</strong></div><button aria-label={`Apply ${suggestion.title}`} className="apply-button" disabled={disabled} onClick={() => apply(suggestion)} type="button">{suggestion.requiresProductSelection ? 'Choose product' : 'Apply'}</button></div>
+          <div className="suggestion__copy">
+            <div className="suggestion-preview">
+              {suggestion.previewDeal ? <strong>{suggestion.previewDeal.isFinanced ? `${formatCurrency(suggestion.previewDeal.monthlyPayment, { cents: true })}/mo` : `${suggestion.previewDeal.customerCredit > 0 ? 'Credit' : 'Cash due'} ${formatCurrency(suggestion.previewDeal.customerCredit || suggestion.previewDeal.dueAtSigning, { cents: true })}`}</strong> : null}
+              <span className={`suggestion-status ${suggestion.requiresProductSelection ? 'needs-action' : suggestion.withinTarget ? 'is-met' : ''}`}>{suggestion.requiresProductSelection ? 'Product setup needed' : suggestion.exact ? 'Meets target' : suggestion.withinTarget ? 'Within target' : `${formatCurrency(suggestion.remainingGap)} remaining to target`}</span>
+            </div>
+            {suggestion.previewDeal ? <dl className={`suggestion-metrics ${suggestion.previewDeal.isFinanced ? 'is-financed' : ''}`}><div><dt>Due at signing</dt><dd>{formatCurrency(suggestion.previewDeal.dueAtSigning)}</dd></div>{suggestion.previewDeal.isFinanced ? <div><dt>Amount financed</dt><dd>{formatCurrency(suggestion.previewDeal.amountFinanced)}</dd></div> : null}<div><dt>Out-the-door</dt><dd>{formatCurrency(suggestion.previewDeal.outTheDoor)}</dd></div></dl> : null}
+            {suggestion.note ? <p className="suggestion-note">{suggestion.note}</p> : null}
           </div>
-          <div className="suggestion__action"><strong className="suggestion__value">{suggestion.value}</strong><button aria-label={`Apply ${suggestion.title}`} className="apply-button" disabled={disabled} onClick={() => apply(suggestion)} type="button">{suggestion.requiresProductSelection ? 'Choose product' : 'Apply'}</button></div>
         </article>)}
       </div>
     </div>

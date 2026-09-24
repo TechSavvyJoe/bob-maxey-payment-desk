@@ -93,7 +93,7 @@ test("proposal copies itemized products, cash requirements, identity, policy and
     ],
   }, { policy: { id: "policy-test", version: "2026.09.24", jurisdiction: "Michigan", year: 2026, effectiveFrom: "2026-01-01", effectiveTo: "2026-12-31", reviewedAt: "2026-09-24", dealDate: "2026-09-24" } });
   const text = formatProposalText(snapshot, { calculatorUrl: "https://example.test/calculator/" });
-  for (const expected of ["Bob Maxey Ford", "2026 F-150 / stock X123", snapshot.reference, "2.0.0 (test-build)", "Service Contract", "GAP", "Bed liner", "trade payoff", "$14,000.00", "Negative equity paid at signing", "$6,000.00", "6.50% APR", "2026-12-31", "Estimate only", "not a financing approval or contract", "Open calculator: https://example.test/calculator/", "does not restore this proposal"]) assert.ok(text.includes(expected), expected);
+  for (const expected of ["Bob Maxey Ford", "2026 F-150 / stock X123", snapshot.reference, "2.0.0 (test-build)", "Service Contract", "GAP", "Bed liner", "trade payoff", "$14,000.00", "Negative equity paid at signing", "$6,000.00", "6.50% APR", "12/31/26", "Estimate only", "not a financing approval or contract", "Open calculator: https://example.test/calculator/", "does not restore this proposal"]) assert.ok(text.includes(expected), expected);
   assert.equal(snapshot.groups[0].rows.reduce((total, item) => total + item.cents, 0), snapshot.groups[0].total.cents);
 });
 
@@ -121,4 +121,17 @@ test("selected comparison always uses the selected deal rate and cent payment", 
   assert.equal(selected[0].apr, snapshot.summary.apr);
   assert.equal(selected[0].monthlyPayment, snapshot.summary.headlineAmount);
   assert.match(formatProposalText(snapshot), /6\.50% APR/);
+});
+
+test("proposal display dates use MM/DD/YY while policy and creation values stay ISO", () => {
+  const snapshot = create({}, { createdAt: "2026-09-25T00:30:00Z" });
+  assert.equal(snapshot.createdAt, "2026-09-25T00:30:00.000Z");
+  assert.equal(snapshot.policy.dealDate, "2026-09-24");
+  assert.equal(snapshot.policy.effectiveTo, "2026-12-31");
+  assert.equal(snapshot.createdLabel, "09/24/26, 8:30 PM");
+  assert.match(snapshot.reference, /^PD-20260925-/);
+  const text = formatProposalText(snapshot);
+  assert.match(text, /Created: 09\/24\/26, 8:30 PM/);
+  assert.match(text, /effective 01\/01\/26 through 12\/31\/26; reviewed 09\/24\/26/);
+  assert.match(text, /Deal date: 09\/24\/26\./);
 });

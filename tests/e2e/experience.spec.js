@@ -5,7 +5,7 @@ test.beforeEach(async ({ page }) => {
   await page.goto('/');
   await expect(page.locator('#worksheet-heading')).toBeVisible();
   await page.locator('details.deal-details > summary').click();
-  await page.getByLabel('Estimate date').fill('2026-09-24');
+  await page.getByLabel('Estimate date').fill('09/24/26');
   await page.locator('details.deal-details > summary').click();
   await page.getByLabel('Selling price', { exact: true }).fill('30000');
   await page.getByLabel('Selling price', { exact: true }).blur();
@@ -99,6 +99,7 @@ test('automated accessibility scan covers dealer, products, grid, and customer',
   test.setTimeout(90000);
   await page.getByRole('button', { name: 'Add product', exact: true }).click();
   await page.getByLabel('Product 1 type').selectOption('other');
+  await page.getByLabel('Target payment', { exact: true }).fill('350');
   for (const surface of ['dealer', 'grid', 'customer']) {
     if (surface === 'grid') {
       await page.getByLabel('Tax treatment for product or add-on 1').selectOption('not-taxable');
@@ -137,13 +138,14 @@ test('an invalid mobile grid rate can be recovered after returning to the worksh
 
 test('responsive worksheets keep amounts and target controls within their containers', async ({ page }, testInfo) => {
   test.skip(testInfo.project.name !== 'chromium', 'Breakpoint sweep is run once; user journeys run on all projects.');
+  await page.getByLabel('Target payment', { exact: true }).fill('350');
   for (const width of [320, 390, 760, 800, 801, 900, 1024, 1280, 1440]) {
     await page.setViewportSize({ width, height: 1000 });
     const bounds = await page.evaluate(() => {
       const visible = element => element.getClientRects().length && getComputedStyle(element).visibility !== 'hidden';
       return {
         pageOverflow: document.documentElement.scrollWidth > innerWidth + 1,
-        clipped: [...document.querySelectorAll('.field-row, .payment-number, .target-setup, .suggestion-card, .term-buttons, .option-row')]
+        clipped: [...document.querySelectorAll('.field-row, .payment-number, .target-setup, .suggestion, .suggestion-metrics, .term-buttons, .option-row')]
           .filter(visible).filter(element => element.scrollWidth > element.clientWidth + 2).map(element => element.className),
       };
     });

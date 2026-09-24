@@ -110,7 +110,7 @@ test('an invalid date keeps the last valid deal and prevents customer presentati
   const details = page.locator('details.deal-details');
   await details.locator('summary').click();
   const date = page.locator('#estimate-date');
-  // Clearing is a browser-supported invalid required-date state on all engines.
+  // An invalid draft must preserve the committed estimate date.
   await date.fill('');
   await expect(date).toHaveAttribute('aria-invalid', 'true');
   await details.locator('summary').click();
@@ -121,7 +121,12 @@ test('an invalid date keeps the last valid deal and prevents customer presentati
   await expect(date).toBeVisible();
   await expect(date).toBeFocused();
   await expect(selectedPayment(page)).toHaveText('$540.67');
-  await date.fill('2026-09-24');
+  await date.fill('02/30/26');
+  await expect(date).toHaveAttribute('aria-invalid', 'true');
+  await expect(date).toHaveValue('02/30/26');
+  await expect(details.locator('time')).toHaveAttribute('datetime', '2026-09-24');
+  await expect(selectedPayment(page)).toHaveText('$540.67');
+  await date.fill('09/24/26');
   await expect(date).not.toHaveAttribute('aria-invalid', 'true');
   await page.getByRole('button', { name: 'Customer view', exact: true }).click();
   await expect(page.getByRole('button', { name: 'Copy summary', exact: true })).toBeEnabled();

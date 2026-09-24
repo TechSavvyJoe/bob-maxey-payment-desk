@@ -2,7 +2,7 @@ import { useId, useMemo, useState } from "react";
 import { formatCurrency, formatNumber } from "../lib/formatters.js";
 import { createProposalSnapshot, formatProposalText } from "../lib/proposal.js";
 import { APP_VERSION, BUILD_ID } from "../lib/release.js";
-import { PrintIcon, ShareIcon } from "./Icons.jsx";
+import { EditIcon, PrintIcon, ShareIcon } from "./Icons.jsx";
 import ResultsPanel from "./ResultsPanel.jsx";
 
 const money = (value) => formatCurrency(value, { cents: true });
@@ -12,7 +12,7 @@ const LedgerRow = ({ item, total = false }) => (
   </div>
 );
 
-export default function CustomerView({ dealInput, result, gridRates, hasInputErrors = false }) {
+export default function CustomerView({ dealInput, result, gridRates, hasInputErrors = false, onEditDeal }) {
   const [createdAt] = useState(() => new Date().toISOString());
   const snapshot = useMemo(() => createProposalSnapshot({
     dealInput, result, gridRates, hasInputErrors, createdAt, version: APP_VERSION + " (" + BUILD_ID + ")",
@@ -71,6 +71,7 @@ export default function CustomerView({ dealInput, result, gridRates, hasInputErr
           <p className="proposal-meta">Reference {snapshot.reference} · App {snapshot.version}</p>
         </header>
         <div className="customer-actions">
+          {onEditDeal ? <button className="edit-deal-button" onClick={onEditDeal} type="button"><EditIcon size={18} />Edit deal</button> : null}
           <button aria-describedby={!snapshot.summary.canExport ? warningId : undefined} className="share-button" disabled={!snapshot.summary.canExport || busy} onClick={handleCopy} type="button">Copy summary</button>
           {canNativeShare ? (
             <button aria-describedby={!snapshot.summary.canExport ? warningId : undefined} className="share-button" disabled={!snapshot.summary.canExport || busy} onClick={handleShare} type="button">

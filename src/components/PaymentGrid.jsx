@@ -18,6 +18,7 @@ export default function PaymentGrid({
   mobileOpen = false,
   hasInputErrors = false,
   canCompare = true,
+  onStartEstimate,
 }) {
   const [isMobile, setIsMobile] = useState(() => window.matchMedia("(max-width: 800px)").matches);
   const [draftCache, setDraftCache] = useState({});
@@ -43,6 +44,7 @@ export default function PaymentGrid({
     Math.abs(dealInput.cashDown - cell.cashDown) < 0.005;
 
   const isUnavailable = (cell) => !canCompare || hasInputErrors || result.isComplete === false || result.salePrice <= 0 || cell.amountFinanced < 0;
+  const isStarting = !(result.salePrice > 0) && !hasInputErrors;
   const apply = (cell) => !isUnavailable(cell) && onApplyScenario({
     termMonths: cell.termMonths,
     apr: cell.apr,
@@ -69,12 +71,13 @@ export default function PaymentGrid({
         </button>
       </div>
 
-      <div className="grid-context">
+      {isStarting ? <div className="grid-empty"><GridIcon size={32} /><div><strong>One deal. Every payment option.</strong><p>Start with a selling price to compare terms, rates, and down payments.</p></div><button type="button" className="apply-button" onClick={onStartEstimate}>Enter selling price<ArrowIcon size={18} /></button></div> : null}
+      <div className="grid-context" hidden={isStarting}>
         <span>{formatWholeCurrency(dealInput.salePrice)} selling price</span>
         <span>{formatWholeCurrency(result.amountBeforeCashDown)} before cash down</span>
       </div>
 
-      {!isMobile ? <div className="desktop-rate-grid">
+      {!isMobile && !isStarting ? <div className="desktop-rate-grid">
         <table>
           <caption className="sr-only">
             Monthly payment estimates by loan term, APR, and total cash down
@@ -131,7 +134,7 @@ export default function PaymentGrid({
         </table>
       </div> : null}
 
-      {isMobile ? <div className="mobile-rate-grid">
+      {isMobile && !isStarting ? <div className="mobile-rate-grid">
         <section className="mobile-down-editor">
           <h3>Down payment amounts</h3>
           <p>Edit the total cash-down amounts to compare payments.</p>
@@ -188,7 +191,7 @@ export default function PaymentGrid({
         </div>
       </div> : null}
 
-      <div className="grid-footer">
+      <div className="grid-footer" hidden={isStarting}>
         <div>
           <GridIcon size={22} />
           <strong>Payment grid</strong>

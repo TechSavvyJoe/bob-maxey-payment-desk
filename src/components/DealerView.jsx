@@ -76,6 +76,12 @@ export default function DealerView({
           <DealSection id="vehicle" className="deal-section--vehicle" title="Vehicle" icon={CarIcon}
             open={accordions.vehicle} onToggle={() => toggleAccordion("vehicle")}
             summary={dealInput.salePrice === "" ? "Enter a price" : formatWholeCurrency(dealInput.salePrice)}>
+            <div className="choice-row">
+              <span>Purchase type</span>
+              <SegmentedControl label="Purchase type" value={dealInput.dealType}
+                onChange={(value) => updateField("dealType", value)}
+                options={[{ label: "Finance", value: "finance" }, { label: "Cash", value: "cash" }]} />
+            </div>
             <FieldRow htmlFor="sale-price" label="Selling price">
               <MoneyInput ariaLabel="Selling price" id="sale-price" required value={dealInput.salePrice}
                 onChange={(value) => updateField("salePrice", value)} />
@@ -109,6 +115,27 @@ export default function DealerView({
               </label>
             ) : null}
           </DealSection>
+          {result.isFinanced ? (
+            <section className="financing-panel" aria-labelledby="financing-heading">
+              <div className="financing-panel__heading"><PercentIcon size={22} /><h2 id="financing-heading">Financing</h2></div>
+              <div className="financing-panel__body">
+                <FieldRow htmlFor="apr" label="APR" helper="Assumed annual percentage rate">
+                  <PercentInput ariaLabel="Annual percentage rate" id="apr" value={dealInput.apr}
+                    onChange={(value) => updateField("apr", value)} />
+                </FieldRow>
+                <div className="term-control">
+                  <span>Term <small>(months)</small></span>
+                  <div aria-label="Loan term" className="term-buttons" role="group">
+                    {RATE_GRID_DEFAULTS.termMonths.map((term) => (
+                      <button aria-pressed={dealInput.termMonths === term}
+                        className={dealInput.termMonths === term ? "is-selected" : ""} key={term}
+                        onClick={() => updateField("termMonths", term)} type="button">{term}</button>
+                    ))}
+                  </div>
+                </div>
+              </div>
+            </section>
+          ) : null}
           </div>
           <div className="deal-column">
           <DealSection id="taxes-fees" className="deal-section--taxes" title="Taxes & registration" icon={ReceiptIcon}
@@ -119,12 +146,6 @@ export default function DealerView({
               <div><dt>Document fee <small>Taxable</small></dt><dd>{formatCurrency(result.fees.documentFee)}</dd></div>
               <div><dt>CRV fee <small>Taxable · store policy</small></dt><dd>{formatCurrency(result.fees.crvFee)}</dd></div>
             </dl>
-            <div className="choice-row">
-              <span>Purchase type</span>
-              <SegmentedControl label="Purchase type" value={dealInput.dealType}
-                onChange={(value) => updateField("dealType", value)}
-                options={[{ label: "Finance", value: "finance" }, { label: "Cash", value: "cash" }]} />
-            </div>
             <div className="choice-row">
               <span>Registration</span>
               <SegmentedControl label="Plate type" value={dealInput.plateMode}
@@ -146,6 +167,7 @@ export default function DealerView({
           <DealSection id="products-addons" className="deal-section--products" title="Products & add-ons" icon={AddCircleIcon}
             open={accordions.roll} onToggle={() => toggleAccordion("roll")}
             summary={dealInput.optionalItems.length ? formatWholeCurrency(result.optionalItemsTotal) : "None selected"}>
+            {!dealInput.optionalItems.length ? <div className="products-empty"><strong>Add only what belongs in this deal.</strong><p>Choose Service Contract, Gap, or Other, then enter the agreed amount.</p></div> : null}
             <div className="option-list">
               {dealInput.optionalItems.map((item, index) => (
                 <div className="option-row" key={item.id}>
@@ -188,27 +210,6 @@ export default function DealerView({
           </DealSection>
           </div>
         </div>
-        {result.isFinanced ? (
-          <section className="financing-panel" aria-labelledby="financing-heading">
-            <div className="financing-panel__heading"><PercentIcon size={22} /><h2 id="financing-heading">Financing</h2></div>
-            <div className="financing-panel__body">
-              <FieldRow htmlFor="apr" label="APR" helper="Assumed annual percentage rate">
-                <PercentInput ariaLabel="Annual percentage rate" id="apr" value={dealInput.apr}
-                  onChange={(value) => updateField("apr", value)} />
-              </FieldRow>
-              <div className="term-control">
-                <span>Term <small>(months)</small></span>
-                <div aria-label="Loan term" className="term-buttons" role="group">
-                  {RATE_GRID_DEFAULTS.termMonths.map((term) => (
-                    <button aria-pressed={dealInput.termMonths === term}
-                      className={dealInput.termMonths === term ? "is-selected" : ""} key={term}
-                      onClick={() => updateField("termMonths", term)} type="button">{term}</button>
-                  ))}
-                </div>
-              </div>
-            </div>
-          </section>
-        ) : null}
       </div>
       <TargetSolver dealInput={dealInput} result={result} {...targetProps} />
     </main>

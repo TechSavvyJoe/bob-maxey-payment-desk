@@ -1,5 +1,5 @@
 import { calculatePayment, fromCents, toCents } from "./calculations.js";
-import { formatCurrency, formatNumber } from "./formatters.js";
+import { formatCurrency, formatNumber, formatShortDate } from "./formatters.js";
 
 export const ESTIMATE_QUALIFICATION = "Estimate only, not a financing approval or contract. Actual payments, taxes, fees, product eligibility, and final figures must be confirmed with the lender and the dealership's approved systems.";
 
@@ -135,8 +135,8 @@ export function createProposalSnapshot({ dealInput = {}, result, createdAt = new
     `Trade tax credit applied: ${money(result.tradeTaxCredit)}; based on eligible trade allowance.`,
     "Product tax treatment and CRV dealer fee must be confirmed for this transaction.",
   ];
-  if (rule.version) assumptions.push(`Rules ${rule.version}; effective ${rule.effectiveFrom} through ${rule.effectiveTo}; reviewed ${rule.reviewedAt}.`);
-  if (rule.dealDate) assumptions.push(`Deal date: ${rule.dealDate}.`);
+  if (rule.version) assumptions.push(`Rules ${rule.version}; effective ${formatShortDate(rule.effectiveFrom)} through ${formatShortDate(rule.effectiveTo)}; reviewed ${formatShortDate(rule.reviewedAt)}.`);
+  if (rule.dealDate) assumptions.push(`Deal date: ${rule.dealDate === "Not specified" ? rule.dealDate : formatShortDate(rule.dealDate)}.`);
   if (result.isFinanced) assumptions.push("Regular monthly amortization at the selected APR; lender timing and final-payment rounding may differ.");
   const comparisonRows = result.isFinanced ? [...new Set([result.termMonths, 60, 72, 84])].sort((a, b) => a - b).map((termMonths) => {
     const selected = termMonths === result.termMonths;
@@ -151,7 +151,7 @@ export function createProposalSnapshot({ dealInput = {}, result, createdAt = new
     title: "Vehicle purchase estimate",
     reference: `PD-${isoDate.slice(0, 10).replaceAll("-", "")}-${referenceFor({ isoDate, groups, apr: result.apr, term: result.termMonths, vehicleReference, version, rule })}`,
     createdAt: isoDate,
-    createdLabel: new Intl.DateTimeFormat("en-US", { dateStyle: "medium", timeStyle: "short", timeZone: "America/Detroit" }).format(timestamp),
+    createdLabel: new Intl.DateTimeFormat("en-US", { month: "2-digit", day: "2-digit", year: "2-digit", hour: "numeric", minute: "2-digit", timeZone: "America/Detroit" }).format(timestamp),
     timeZone: "America/Detroit",
     version: String(version),
     vehicleReference,

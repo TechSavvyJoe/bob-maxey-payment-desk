@@ -120,7 +120,7 @@ export function buildSuggestions({ dealInput = {}, result: suppliedResult, targe
     const suffix = targetType === 'payment' ? '/mo' : '';
     const qualification = exact ? 'Target reached.' : `${money(fromCents(Math.abs(differenceCents)))}${suffix} ${withinTarget ? 'below' : 'above'} target.`;
     suggestions.push({
-      ...suggestion, previewDeal, exact, withinTarget, status,
+      ...suggestion, previewDeal, exact, withinTarget, status, note,
       difference: fromCents(differenceCents), remainingGap: fromCents(Math.abs(differenceCents)),
       detail: `${resultLine(previewDeal)} · ${qualification}${note ? ` ${note}` : ''}`,
     });

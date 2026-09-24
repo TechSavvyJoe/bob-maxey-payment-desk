@@ -3,6 +3,7 @@ import { calculateDeal } from './lib/calculations.js';
 import { createDeskState, deskReducer, hasDealEdits } from './lib/dealState.js';
 import { APP_VERSION, BUILD_ID } from './lib/release.js';
 import { getProposalStatus } from './lib/proposal.js';
+import { formatShortDate } from './lib/formatters.js';
 import CustomerView from './components/CustomerView.jsx';
 import DealerView from './components/DealerView.jsx';
 import MobileNav from './components/MobileNav.jsx';
@@ -118,7 +119,9 @@ export default function App() {
     },
     onUndoRoll: () => dispatch({ type: 'undo' }),
   };
-  const summaryProps = { dealInput, result, hasInputErrors, onActivatePaymentTarget: activatePaymentTarget };
+  const summaryProps = { dealInput, result, hasInputErrors, onActivatePaymentTarget: activatePaymentTarget,
+    onComparePayments: scrollToGrid, onReviewEstimate: () => changeView('customer'),
+    onStartEstimate: () => { dispatch({ type: 'grid-visibility', open: false }); setAccordions(current => ({ ...current, vehicle: true })); focusDestination('sale-price'); } };
 
   return (
     <ValidationContext.Provider value={reportError}>
@@ -137,7 +140,7 @@ export default function App() {
                 <div className="mobile-results" id="payment-results-mobile" tabIndex={-1}><ResultsPanel {...summaryProps} /></div>
                 <QuickJumpNav />
                 <details className="deal-details" open={contextOpen} onToggle={event => setContextOpen(event.currentTarget.open)}>
-                <summary><strong>Deal details</strong><span>{dealInput.vehicleDescription || 'Vehicle reference & estimate date'}</span><time dateTime={dealInput.dealDate}>{dealInput.dealDate}</time></summary>
+                <summary><strong>Deal details</strong><span>{dealInput.vehicleDescription || 'Vehicle reference & estimate date'}</span><time dateTime={dealInput.dealDate}>{formatShortDate(dealInput.dealDate)}</time></summary>
                 <div className="deal-context">
                   <label htmlFor="vehicle-reference">Vehicle / stock reference <span>Optional</span><input id="vehicle-reference" className="text-input" type="text" maxLength={100} value={dealInput.vehicleDescription} onChange={e => updateField('vehicleDescription', e.target.value)} placeholder="e.g. 2024 Explorer · H12345" /></label>
                   <EstimateDateField value={dealInput.dealDate} onChange={value => updateField('dealDate', value)} />
@@ -153,20 +156,20 @@ export default function App() {
             {result.isFinanced ? <button className="grid-jump" onClick={scrollToGrid} type="button"><span>Payment grid</span><strong>Compare terms, rates, and down payments</strong></button> : null}
           </> : <>
             <div className="page-intro page-intro--customer"><h1 id="customer-heading" tabIndex={-1}>Your purchase estimate</h1><p>The selected vehicle, products, and payment — together in one place.</p></div>
-            <CustomerView dealInput={dealInput} gridRates={gridRates} result={result} hasInputErrors={hasInputErrors} />
+            <CustomerView dealInput={dealInput} gridRates={gridRates} result={result} hasInputErrors={hasInputErrors} onEditDeal={() => changeView('dealer')} />
           </>}
         </div>
         {view === 'dealer' && result.isFinanced ? <PaymentGrid key={`grid-${resetCount}`} dealInput={dealInput} downPayments={gridDownPayments}
           onApplyScenario={patch => { if (hasInputErrors) { focusFirstError(); return; } if (!canCompare) return; dispatch({ type: 'grid', patch }); if (isMobile()) focusDestination('payment-results-mobile'); }}
           onMobileClose={closeGrid} onDownPaymentChange={(index, value) => dispatch({ type: 'down', index, value })}
           onRateChange={(term, value) => dispatch({ type: 'rate', term, value })}
-          rates={gridRates} result={result} mobileOpen={mobileGridOpen} hasInputErrors={hasInputErrors} canCompare={canCompare} /> : null}
+          rates={gridRates} result={result} mobileOpen={mobileGridOpen} hasInputErrors={hasInputErrors} canCompare={canCompare} onStartEstimate={summaryProps.onStartEstimate} /> : null}
         <footer className="app-footer">
           <p>Estimates only. Subject to lender approval and final taxes, fees, and deal structure.</p>
           <p>Figures stay in this browser unless you share or print. Refreshing clears the deal.</p>
           <p>Michigan purchase estimates · v{APP_VERSION} · {BUILD_ID}</p>
         </footer>
-        {view === 'dealer' && result.isFinanced ? <MobileNav onGrid={scrollToGrid} onPayment={() => { dispatch({ type: 'grid-visibility', open: false }); focusDestination('payment-results-mobile'); }} payment={result.monthlyPayment} /> : null}
+        {view === 'dealer' && result.isFinanced ? <MobileNav onGrid={scrollToGrid} onPayment={() => { dispatch({ type: 'grid-visibility', open: false }); focusDestination('payment-results-mobile'); }} payment={result.monthlyPayment} hasEstimate={result.salePrice > 0} /> : null}
       </div>
     </ValidationContext.Provider>
   );

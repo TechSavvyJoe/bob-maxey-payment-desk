@@ -11,7 +11,7 @@ export default function QuickJumpNav() {
   const jump = (target) => {
     const section = document.getElementById(target);
     if (!section) return;
-    const destination = section.querySelector(".deal-section__header, h2");
+    const destination = section.querySelector(".deal-section__header") ?? section.querySelector("h2");
     if (destination) {
       if (destination.tagName !== "BUTTON") destination.tabIndex = -1;
       destination.focus({ preventScroll: true });

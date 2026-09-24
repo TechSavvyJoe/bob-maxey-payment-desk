@@ -1,4 +1,4 @@
-import { forwardRef, useEffect, useId, useState } from 'react';
+import { cloneElement, forwardRef, isValidElement, useEffect, useId, useState } from 'react';
 import { parseFinancialInput } from '../lib/inputValidation.js';
 import { useFieldValidation } from './ValidationContext.jsx';
 
@@ -8,7 +8,7 @@ const isBlank = value => value === '' || value == null;
 const FinancialInput = forwardRef(function FinancialInput({
   value, onChange, id, ariaLabel, className = '', disabled = false,
   min = 0, compact = false, kind = 'money', required = false,
-  savedDraft, onDraftChange,
+  savedDraft, onDraftChange, 'aria-describedby': describedBy,
 }, ref) {
   const generatedId = useId();
   const inputId = id || generatedId;
@@ -37,7 +37,7 @@ const FinancialInput = forwardRef(function FinancialInput({
     <span className={`input-wrapper ${error ? 'is-invalid' : ''}`}>
       <span className={`${kind === 'money' ? 'money-input' : 'percent-input'} ${compact ? 'money-input--compact' : ''} ${className}`}>
         {kind === 'money' ? <span aria-hidden="true" className="money-input__prefix">$</span> : null}
-        <input aria-label={ariaLabel} aria-invalid={error ? true : undefined} aria-describedby={error ? errorId : undefined}
+        <input aria-label={ariaLabel} aria-invalid={error ? true : undefined} aria-describedby={[describedBy, error ? errorId : null].filter(Boolean).join(' ') || undefined}
           disabled={disabled} id={inputId} inputMode="decimal" min={min} required={required} ref={ref} type="text"
           value={focused || error ? draft : formatted}
           onFocus={event => {
@@ -58,12 +58,19 @@ const FinancialInput = forwardRef(function FinancialInput({
 export const MoneyInput = forwardRef(function MoneyInput(props, ref) { return <FinancialInput {...props} ref={ref} />; });
 export const PercentInput = props => <FinancialInput {...props} kind="rate" required={!props.disabled} />;
 
-export const FieldRow = ({ label, htmlFor, children, helper, className = '' }) => (
-  <div className={`field-row ${className}`}>
-    <div className="field-row__label"><label htmlFor={htmlFor}>{label}</label>{helper ? <span>{helper}</span> : null}</div>
-    {children}
-  </div>
-);
+export function FieldRow({ label, htmlFor, children, helper, className = '' }) {
+  const generatedId = useId();
+  const helperId = `${htmlFor || generatedId}-help`;
+  const control = helper && isValidElement(children) ? cloneElement(children, {
+    'aria-describedby': [children.props['aria-describedby'], helperId].filter(Boolean).join(' '),
+  }) : children;
+  return (
+    <div className={`field-row ${className}`}>
+      <div className="field-row__label"><label htmlFor={htmlFor}>{label}</label>{helper ? <span id={helperId}>{helper}</span> : null}</div>
+      {control}
+    </div>
+  );
+}
 
 export const SegmentedControl = ({ label, options, value, onChange, className = '' }) => (
   <div aria-label={label} className={`segmented ${className}`} role="group">
