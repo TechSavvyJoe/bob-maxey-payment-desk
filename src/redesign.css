@@ -2575,6 +2575,12 @@ input[type="checkbox"] { flex:0 0 auto; }
  .estimate-compare { background:rgb(255 255 255 / 7%); border:1px solid #8499d4; color:white; }
  .estimate-compare:hover { background:rgb(255 255 255 / 16%); }
  .estimate-actions>p { margin:2px 0 0; color:#d6ddff; text-align:center; font-size:.72rem; line-height:1.4; }
+ .deal-breakdown { padding:12px 16px; }
+ .deal-breakdown summary { display:flex; align-items:center; justify-content:space-between; gap:12px; min-height:56px; padding:12px 14px; border:1px solid #859cda; border-radius:8px; background:rgb(255 255 255 / 9%); font-size:.9rem; line-height:1.4; list-style:none; }
+ .deal-breakdown summary::-webkit-details-marker { display:none; }
+ .deal-breakdown summary::after { content:""; width:9px; height:9px; flex:0 0 9px; border-right:2px solid currentColor; border-bottom:2px solid currentColor; transform:rotate(45deg); margin:0 2px 4px; }
+ .deal-breakdown[open]>summary::after { transform:rotate(225deg); margin-top:5px; margin-bottom:0; }
+ .deal-breakdown summary:hover { background:rgb(255 255 255 / 17%); border-color:#c6d5ff; }
  .results-panel--starting .payment-number { min-height:50px; margin:0; }
  .results-panel--starting .results-payment>p { display:none; }
  .edit-deal-button { display:inline-flex; align-items:center; justify-content:center; gap:7px; min-height:44px; padding:8px 13px; border:1px solid var(--input-border); border-radius:8px; color:var(--navy); background:white; font-weight:600; font-size:.86rem; margin-right:auto; }
@@ -2604,8 +2610,8 @@ input[type="checkbox"] { flex:0 0 auto; }
  .mobile-results .result-totals .breakdown-row { flex-direction:column; align-items:flex-start; justify-content:center; padding:9px 10px; gap:4px; font-size:.66rem; min-width:0; }
  .mobile-results .result-totals .breakdown-row+.breakdown-row { border-top:0; border-left:1px solid rgb(255 255 255 / 16%); }
  .mobile-results .result-totals .breakdown-row strong { font-size:clamp(.69rem,2.9vw,.88rem); max-width:100%; overflow-wrap:anywhere; white-space:normal; }
- .mobile-results .deal-breakdown { padding:0 14px; }
- .mobile-results .deal-breakdown summary { font-size:.74rem; min-height:40px; }
+ .mobile-results .deal-breakdown { padding:10px 12px; }
+ .mobile-results .deal-breakdown summary { font-size:.85rem; min-height:56px; padding:12px; }
  .mobile-results .estimate-actions { padding:0 12px 12px; gap:0; }
  .mobile-results .estimate-compare,.mobile-results .estimate-actions>p { display:none; }
  .mobile-results .estimate-review { min-height:44px; font-size:.8rem; padding:8px; }
