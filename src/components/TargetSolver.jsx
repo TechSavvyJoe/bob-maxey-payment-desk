@@ -3,6 +3,7 @@ import {
   calculateDeal,
   calculatePayment,
   fromCents,
+  RATE_GRID_DEFAULTS,
   solveAmountFinancedForPayment,
   solveCentValueForTarget,
   solveOptionalItemAmountForTarget,
@@ -13,7 +14,7 @@ import { formatCurrency, formatNumber, formatWholeCurrency } from "../lib/format
 import { MoneyInput, SegmentedControl } from "./Fields.jsx";
 import { ArrowIcon, ResetIcon } from "./Icons.jsx";
 
-const STANDARD_TERMS = [36, 48, 60, 72, 84];
+const STANDARD_TERMS = RATE_GRID_DEFAULTS.termMonths;
 
 const metricLabel = {
   payment: "payment",
@@ -326,6 +327,8 @@ export default function TargetSolver({
         </div>
         {solution.suggestions.length > 3 ? (
           <button
+            aria-controls="suggestion-list"
+            aria-expanded={expanded}
             className="text-action"
             onClick={() => onExpandedChange(!expanded)}
             type="button"
@@ -374,7 +377,10 @@ export default function TargetSolver({
           </div>
           <p aria-live="polite" className="target-summary">{summary}</p>
         </div>
-        <div className="suggestion-list">
+        <div className="suggestion-list" id="suggestion-list">
+          {solution.empty ? (
+            <p className="suggestion-empty">Enter a target above to see ways to reach it.</p>
+          ) : null}
           {visibleSuggestions.map((suggestion) => (
             <article className="suggestion" key={suggestion.id}>
               <ArrowIcon direction={suggestion.iconDirection} size={21} />

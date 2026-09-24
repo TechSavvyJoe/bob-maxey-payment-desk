@@ -1,10 +1,10 @@
 import React, { useMemo } from "react";
-import { calculateRateGrid } from "../lib/calculations.js";
+import { calculateRateGrid, RATE_GRID_DEFAULTS } from "../lib/calculations.js";
 import { formatCurrency, formatNumber, formatWholeCurrency } from "../lib/formatters.js";
 import { MoneyInput, PercentInput } from "./Fields.jsx";
 import { ArrowIcon, GridIcon } from "./Icons.jsx";
 
-const TERMS = [36, 48, 60, 72, 84];
+const TERMS = RATE_GRID_DEFAULTS.termMonths;
 
 export default function PaymentGrid({
   dealInput,

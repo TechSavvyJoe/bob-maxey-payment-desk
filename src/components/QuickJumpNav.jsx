@@ -5,6 +5,7 @@ const sections = [
   { label: "Trade", target: "trade-cash-section" },
   { label: "Fees", target: "taxes-fees-section" },
   { label: "Products", target: "products-addons-section" },
+  { label: "Target", target: "target-solver" },
 ];
 
 export default function QuickJumpNav() {

@@ -48,10 +48,13 @@ export default function CustomerView({ dealInput, result, gridRates, paymentTarg
     if (canNativeShare) {
       try {
         await navigator.share({ title: "Bob Maxey Ford — Purchase Proposal", text, url: window.location.href });
+        return;
       } catch (error) {
-        if (error?.name !== "AbortError") flashStatus("Couldn't open the share sheet.");
+        if (error?.name === "AbortError") return;
+        // Native share failed for a real reason (permissions policy,
+        // unsupported payload, etc.) — fall through to the clipboard/print
+        // fallback below instead of leaving the user with nothing.
       }
-      return;
     }
     if (navigator.clipboard?.writeText) {
       try {

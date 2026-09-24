@@ -20,6 +20,7 @@ export default function ResultsPanel({
   customer = false,
   onPaymentTargetChange,
   onActivatePaymentTarget,
+  resetSignal,
 }) {
   const [editing, setEditing] = useState(false);
   const [draft, setDraft] = useState(String(Math.round(result.monthlyPayment)));
@@ -28,6 +29,13 @@ export default function ResultsPanel({
   useEffect(() => {
     if (!editing) setDraft(String(Math.round(result.monthlyPayment)));
   }, [result.monthlyPayment, editing]);
+
+  // "Reset deal" clears the whole deal elsewhere in the app; make sure a
+  // target-payment edit in progress doesn't keep showing a stale value.
+  useEffect(() => {
+    if (resetSignal === undefined) return;
+    setEditing(false);
+  }, [resetSignal]);
 
   const startEditing = () => {
     if (!result.isFinanced) return;
