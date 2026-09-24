@@ -1,6 +1,6 @@
 # MySoldLog deployment
 
-Published to Cloudflare Pages on September 24, 2026. The MySoldLog domain connection is still pending; existing GoDaddy DNS and Firebase hosting are unchanged.
+Published to Cloudflare Pages on September 24, 2026. The user selected `desking.mysoldlog.com`, which is now attached in Cloudflare. GoDaddy DNS configuration and HTTPS activation are still pending; existing GoDaddy DNS and Firebase hosting are unchanged.
 
 ## Current deployment
 
@@ -13,7 +13,18 @@ Published to Cloudflare Pages on September 24, 2026. The MySoldLog domain connec
 - HTTPS returned 200 with all configured headers. The live application rendered correctly, calculated a $30,000 sale at $540.67/month with default settings, and captured no console warnings/errors. The original MySoldLog root retained its previous response/ETag.
 - A prior local smoke run with the same CSP verified target adjustment/Undo, breakdown expansion, customer view, real clipboard copy, PDF output, and 390px layout without CSP or resource failures.
 
-The remaining steps are choosing the final address and completing the authorized domain configuration. The GoDaddy browser session currently requires sign-in. No custom domain has been attached yet.
+The Cloudflare custom domain was added on September 24, 2026 at 23:25 UTC, with domain ID `69b7b0d7-4a88-4a32-bf9f-0a5afc19965b`. Cloudflare returned `initializing` with verification pending. Both authoritative nameservers returned NXDOMAIN for `desking.mysoldlog.com` before the planned DNS change.
+
+The remaining step is signing in to GoDaddy and adding this DNS record, then verifying DNS and HTTPS activation:
+
+| Field | Value |
+| --- | --- |
+| Type | CNAME |
+| Name | desking |
+| Value | mysoldlog-desking.pages.dev |
+| TTL | Default |
+
+The GoDaddy browser session currently requires sign-in. The record has **not** been saved there yet. Do not report the custom address as live until its authoritative DNS and HTTPS endpoint are verified.
 
 ## Existing domain
 
@@ -21,7 +32,7 @@ Live DNS inspection found `mysoldlog.com` on GoDaddy nameservers `ns59.domaincon
 
 ## Cloudflare hosting with a GoDaddy subdomain
 
-Recommended address: `https://desking.mysoldlog.com`.
+Selected address: `https://desking.mysoldlog.com`.
 
 1. Build the reviewed source with `npm run build`. Upload only `dist`, which contains the calculator and static assets, not the repository or user-entered figures.
 2. Create or select a Cloudflare Pages project in the verified account. Record its actual `pages.dev` hostname and deployment ID; do not assume the requested project name is available.
