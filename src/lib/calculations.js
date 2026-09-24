@@ -364,6 +364,9 @@ export function calculateDeal(input = {}) {
   if (isFinanced && amountFinancedCents < 0) {
     warnings.push('Credits exceed the balance. Reduce cash down or trade equity.');
   }
+  if (!hasVehicle && (tradeAllowanceCents > 0 || tradePayoffCents > 0 || optionalItemsTotalCents > 0)) {
+    warnings.push('Enter a selling price to include fees and tax in this estimate.');
+  }
 
   const feeCents = {
     documentFee: documentFeeCents,

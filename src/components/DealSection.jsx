@@ -24,7 +24,9 @@ export default function DealSection({
       >
         {SectionIcon ? <SectionIcon className="deal-section__icon" size={25} /> : null}
         <span className="deal-section__title-wrap">
-          <span className="deal-section__title">{title}</span>
+          <span aria-level={3} className="deal-section__title" role="heading">
+            {title}
+          </span>
           {summary ? <span className="deal-section__summary">{summary}</span> : null}
         </span>
         <ChevronIcon className="deal-section__chevron" direction={open ? "up" : "down"} size={22} />

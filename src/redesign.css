@@ -832,6 +832,16 @@ a:focus-visible {
   padding: 10px 16px;
   display: grid;
   gap: 8px;
+  align-content: start;
+}
+
+.suggestion-empty {
+  margin: 0;
+  padding: 24px 4px;
+  color: var(--muted);
+  font-size: 0.92rem;
+  font-weight: 500;
+  text-align: center;
 }
 
 .suggestion {
@@ -1123,7 +1133,37 @@ a:focus-visible {
 /* ---------- Payment grid ---------- */
 
 .grid-jump {
-  display: none;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  width: min(1480px, calc(100% - 32px));
+  margin: 4px auto 0;
+  padding: 14px 20px;
+  border: 0;
+  border-radius: var(--radius);
+  background: var(--navy);
+  color: #ffffff;
+  text-align: left;
+  box-shadow: var(--shadow);
+}
+
+.grid-jump:hover {
+  background: var(--blue-dark);
+}
+
+.grid-jump span {
+  font-size: 0.78rem;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: #d6ddff;
+}
+
+.grid-jump strong {
+  margin-left: 14px;
+  font-size: 0.98rem;
+  font-weight: 700;
 }
 
 .payment-grid-section {
@@ -1650,7 +1690,7 @@ a:focus-visible {
 
   .quick-jump-nav {
     display: grid;
-    grid-template-columns: repeat(4, 1fr);
+    grid-template-columns: repeat(3, 1fr);
     gap: 6px;
     padding: 6px;
     margin-bottom: 8px;
@@ -1873,6 +1913,11 @@ a:focus-visible {
 
   .app-frame.has-mobile-grid-open .calculator-shell,
   .app-frame.has-mobile-grid-open .app-footer {
+    display: none;
+  }
+
+  /* MobileNav's "Payment grid" shortcut already covers this on mobile. */
+  .grid-jump {
     display: none;
   }
 
@@ -2170,7 +2215,6 @@ a:focus-visible {
   .app-header,
   .page-intro,
   .customer-actions,
-  .results-panel--customer,
   .mobile-nav,
   .app-footer {
     display: none !important;
@@ -2186,5 +2230,22 @@ a:focus-visible {
     box-shadow: none;
     border: 1px solid #000000;
     break-inside: avoid;
+  }
+
+  /* Keep the payment/cash-due headline on the printed proposal, but strip
+     the navy theme so it prints legibly on plain paper. */
+  .results-panel--customer {
+    display: block;
+    break-inside: avoid;
+    background: #ffffff !important;
+    border: 1px solid #000000;
+    border-radius: 8px;
+    margin-bottom: 16px;
+  }
+
+  .results-panel--customer * {
+    background: transparent !important;
+    color: #000000 !important;
+    box-shadow: none !important;
   }
 }

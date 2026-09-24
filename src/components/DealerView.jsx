@@ -1,5 +1,5 @@
 import React from "react";
-import { CALCULATION_DEFAULTS } from "../lib/calculations.js";
+import { CALCULATION_DEFAULTS, RATE_GRID_DEFAULTS } from "../lib/calculations.js";
 import { formatCurrency, formatWholeCurrency } from "../lib/formatters.js";
 import DealSection from "./DealSection.jsx";
 import { FieldRow, MoneyInput, PercentInput, SegmentedControl } from "./Fields.jsx";
@@ -126,10 +126,10 @@ export default function DealerView({
               />
             </FieldRow>
             <FieldRow helper="Taxable · every deal" label="Doc fee">
-              <MoneyInput ariaLabel="Document fee" disabled value={CALCULATION_DEFAULTS.documentFee} />
+              <MoneyInput ariaLabel="Document fee" disabled value={result.fees.documentFee} />
             </FieldRow>
             <FieldRow helper="Taxable · every deal" label="CRV">
-              <MoneyInput ariaLabel="CRV fee" disabled value={CALCULATION_DEFAULTS.crvFee} />
+              <MoneyInput ariaLabel="CRV fee" disabled value={result.fees.crvFee} />
             </FieldRow>
             <div className="choice-row">
               <span>Purchase</span>
@@ -170,11 +170,11 @@ export default function DealerView({
               </FieldRow>
             ) : (
               <div className="state-fee-line">
-                Transfer {formatCurrency(CALCULATION_DEFAULTS.plateTransferFee)}
+                Transfer {formatCurrency(result.fees.plateTransferFee)}
                 <span>+</span>
-                State fee {formatCurrency(CALCULATION_DEFAULTS.additionalTransferFee)}
+                State fee {formatCurrency(result.fees.additionalTransferFee)}
                 <span>+</span>
-                Title {formatCurrency(result.isFinanced ? CALCULATION_DEFAULTS.financeTitleFee : CALCULATION_DEFAULTS.cashTitleFee)}
+                Title {formatCurrency(result.fees.titleFee)}
               </div>
             )}
           </DealSection>
@@ -267,7 +267,7 @@ export default function DealerView({
           <div className="term-control">
             <span>Term (months)</span>
             <div aria-label="Loan term" className="term-buttons" role="group">
-              {[36, 48, 60, 72, 84].map((term) => (
+              {RATE_GRID_DEFAULTS.termMonths.map((term) => (
                 <button
                   aria-pressed={dealInput.termMonths === term}
                   className={dealInput.termMonths === term ? "is-selected" : ""}

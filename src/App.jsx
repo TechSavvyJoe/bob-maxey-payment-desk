@@ -55,6 +55,7 @@ export default function App() {
   const [mobileGridOpen, setMobileGridOpen] = useState(false);
   const [solverExpanded, setSolverExpanded] = useState(false);
   const [lastRoll, setLastRoll] = useState(null);
+  const [resetCount, setResetCount] = useState(0);
   const [accordions, setAccordions] = useState({
     vehicle: true,
     trade: true,
@@ -76,6 +77,9 @@ export default function App() {
     setDealInput((current) => {
       const next = { ...current, [field]: value };
       if (field === "termMonths") next.apr = gridRates[value] ?? current.apr;
+      // Cash down only applies to financed deals — clear it so it can't
+      // silently reapply if the dealer switches back to Finance later.
+      if (field === "dealType" && value === "cash") next.cashDown = "";
       return next;
     });
   };
@@ -113,10 +117,10 @@ export default function App() {
     }));
   };
 
-  // One-step undo for target-solver suggestions: capture the deal exactly as
-  // it was right before a suggestion is applied, so "roll to a target" is
-  // always reversible.
-  const captureUndo = (label) => setLastRoll({ dealInput, label });
+  // One-step undo for target-solver suggestions: capture the deal (and the
+  // rate grid, which a suggestion can also mutate) exactly as it was right
+  // before a suggestion is applied, so "roll to a target" is always reversible.
+  const captureUndo = (label) => setLastRoll({ dealInput, gridRates, label });
 
   const applyItemPatch = ({ index, amount }, label) => {
     captureUndo(label);
@@ -136,10 +140,12 @@ export default function App() {
   const undoLastRoll = () => {
     if (!lastRoll) return;
     setDealInput(lastRoll.dealInput);
+    setGridRates(lastRoll.gridRates);
     setLastRoll(null);
   };
 
   const resetDeal = () => {
+    if (!window.confirm("Reset this deal? All figures, trade, and add-ons will be cleared.")) return;
     setDealInput(freshDeal());
     setGridRates({ ...INITIAL_RATES });
     setGridDownPayments([...INITIAL_DOWN_PAYMENTS]);
@@ -149,6 +155,7 @@ export default function App() {
     setSolverExpanded(false);
     setAccordions({ vehicle: true, trade: true, taxes: true, roll: true });
     setLastRoll(null);
+    setResetCount((current) => current + 1);
     itemCounter.current = 1;
   };
 
@@ -159,12 +166,18 @@ export default function App() {
   const activatePaymentTarget = (value) => {
     setTargetType("payment");
     setTargetValue("payment", value);
+    requestAnimationFrame(() => {
+      targetInputRef.current?.scrollIntoView({ behavior: "smooth", block: "center" });
+      targetInputRef.current?.focus();
+      targetInputRef.current?.select?.();
+    });
   };
 
   const paymentTargetProps = {
     paymentTarget: targetValues.payment,
     onPaymentTargetChange: (value) => setTargetValue("payment", value),
     onActivatePaymentTarget: activatePaymentTarget,
+    resetSignal: resetCount,
   };
 
   const targetProps = {
@@ -189,8 +202,12 @@ export default function App() {
   const applyGridScenario = ({ termMonths, apr, cashDown }) => {
     setDealInput((current) => ({ ...current, termMonths, apr, cashDown }));
     setGridRates((current) => ({ ...current, [termMonths]: apr }));
-    setMobileGridOpen(false);
-    document.getElementById("calculator-top")?.scrollIntoView({ behavior: "smooth" });
+    if (window.matchMedia("(max-width: 760px)").matches) {
+      setMobileGridOpen(false);
+      document.getElementById("calculator-top")?.scrollIntoView({ behavior: "smooth" });
+    }
+    // On desktop, stay put so the dealer sees the cell's selected highlight
+    // instead of the page jumping away right as they click it.
   };
 
   const scrollToGrid = () => {
@@ -273,7 +290,12 @@ export default function App() {
           onDownPaymentChange={(index, value) =>
             setGridDownPayments((current) => current.map((item, itemIndex) => itemIndex === index ? value : item))
           }
-          onRateChange={(term, value) => setGridRates((current) => ({ ...current, [term]: value }))}
+          onRateChange={(term, value) => {
+            // updateField("apr", ...) already syncs gridRates for the current
+            // term; only the other terms need a direct gridRates update.
+            if (term === dealInput.termMonths) updateField("apr", value);
+            else setGridRates((current) => ({ ...current, [term]: value }));
+          }}
           rates={gridRates}
           result={result}
           mobileOpen={mobileGridOpen}
