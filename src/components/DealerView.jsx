@@ -1,4 +1,3 @@
-import React from "react";
 import { CALCULATION_DEFAULTS, RATE_GRID_DEFAULTS } from "../lib/calculations.js";
 import { formatCurrency, formatWholeCurrency } from "../lib/formatters.js";
 import DealSection from "./DealSection.jsx";

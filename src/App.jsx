@@ -1,4 +1,4 @@
-import React, { useMemo, useRef, useState } from "react";
+import { useMemo, useRef, useState } from "react";
 import { calculateDeal } from "./lib/calculations.js";
 import CustomerView from "./components/CustomerView.jsx";
 import DealerView from "./components/DealerView.jsx";

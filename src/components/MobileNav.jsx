@@ -1,4 +1,3 @@
-import React from "react";
 import { formatWholeCurrency } from "../lib/formatters.js";
 import { ArrowIcon, GridIcon } from "./Icons.jsx";
 

@@ -1,4 +1,3 @@
-import React from "react";
 import { SegmentedControl } from "./Fields.jsx";
 import { ResetIcon } from "./Icons.jsx";
 

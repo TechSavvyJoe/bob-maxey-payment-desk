@@ -1,4 +1,3 @@
-import React from "react";
 import { ChevronIcon } from "./Icons.jsx";
 
 export default function DealSection({
