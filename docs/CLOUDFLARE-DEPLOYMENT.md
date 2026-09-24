@@ -1,6 +1,19 @@
 # MySoldLog deployment
 
-Prepared for the current payment desk on September 24, 2026. Hosting and DNS changes are not yet applied.
+Published to Cloudflare Pages on September 24, 2026. The MySoldLog domain connection is still pending; existing GoDaddy DNS and Firebase hosting are unchanged.
+
+## Current deployment
+
+- Project: `mysoldlog-desking`, in the verified Cloudflare account.
+- Live address: `https://mysoldlog-desking.pages.dev/`.
+- Deployment ID: `c879c611-74cf-45c2-891b-c0b9af9d2b47`.
+- Deployment URL: `https://c879c611.mysoldlog-desking.pages.dev`.
+- Source commit: `3f191ff` (build display `3f191ff9`).
+- Production branch label in Pages: `main`. This is a direct upload of the reviewed working branch, not a Git merge or a GitHub Pages deployment.
+- HTTPS returned 200 with all configured headers. The live application rendered correctly, calculated a $30,000 sale at $540.67/month with default settings, and captured no console warnings/errors. The original MySoldLog root retained its previous response/ETag.
+- A prior local smoke run with the same CSP verified target adjustment/Undo, breakdown expansion, customer view, real clipboard copy, PDF output, and 390px layout without CSP or resource failures.
+
+The remaining steps are choosing the final address and completing the authorized domain configuration. The GoDaddy browser session currently requires sign-in. No custom domain has been attached yet.
 
 ## Existing domain
 
