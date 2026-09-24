@@ -1,4 +1,4 @@
-import React, { useMemo } from "react";
+import { useMemo } from "react";
 import { calculateRateGrid, RATE_GRID_DEFAULTS } from "../lib/calculations.js";
 import { formatCurrency, formatNumber, formatWholeCurrency } from "../lib/formatters.js";
 import { MoneyInput, PercentInput } from "./Fields.jsx";

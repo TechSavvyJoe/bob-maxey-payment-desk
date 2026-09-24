@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { calculatePayment } from "../lib/calculations.js";
 import { formatCurrency, formatNumber, formatWholeCurrency } from "../lib/formatters.js";
 import { PrintIcon, ShareIcon } from "./Icons.jsx";

@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useState } from "react";
+import { useRef, useState } from "react";
 import { formatCurrency, formatNumber, formatWholeCurrency } from "../lib/formatters.js";
 import { EditIcon } from "./Icons.jsx";
 
@@ -23,19 +23,18 @@ export default function ResultsPanel({
   resetSignal,
 }) {
   const [editing, setEditing] = useState(false);
+  // `draft` is only read while editing, and startEditing seeds it, so it
+  // needs no syncing back from `result` in between.
   const [draft, setDraft] = useState(String(Math.round(result.monthlyPayment)));
   const inputRef = useRef(null);
 
-  useEffect(() => {
-    if (!editing) setDraft(String(Math.round(result.monthlyPayment)));
-  }, [result.monthlyPayment, editing]);
-
-  // "Reset deal" clears the whole deal elsewhere in the app; make sure a
-  // target-payment edit in progress doesn't keep showing a stale value.
-  useEffect(() => {
-    if (resetSignal === undefined) return;
+  // "Reset deal" clears the whole deal elsewhere in the app; drop any
+  // target-payment edit in progress so it can't show a stale value.
+  const [lastResetSignal, setLastResetSignal] = useState(resetSignal);
+  if (resetSignal !== lastResetSignal) {
+    setLastResetSignal(resetSignal);
     setEditing(false);
-  }, [resetSignal]);
+  }
 
   const startEditing = () => {
     if (!result.isFinanced) return;

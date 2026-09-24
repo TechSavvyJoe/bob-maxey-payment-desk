@@ -1,0 +1,15 @@
+version: 2
+updates:
+  - package-ecosystem: npm
+    directory: /
+    schedule:
+      interval: monthly
+    groups:
+      react:
+        patterns: ["react", "react-dom"]
+      tooling:
+        patterns: ["vite", "@vitejs/*", "eslint", "@eslint/*", "eslint-plugin-*", "globals"]
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: monthly

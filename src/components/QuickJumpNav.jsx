@@ -1,4 +1,3 @@
-import React from "react";
 
 const sections = [
   { label: "Vehicle", target: "vehicle-section" },

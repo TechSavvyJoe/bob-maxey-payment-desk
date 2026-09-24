@@ -1,4 +1,4 @@
-import React, { useMemo } from "react";
+import { useMemo } from "react";
 import {
   calculateDeal,
   calculatePayment,
@@ -8,7 +8,6 @@ import {
   solveCentValueForTarget,
   solveOptionalItemAmountForTarget,
   solveSalePriceForTarget,
-  toCents,
 } from "../lib/calculations.js";
 import { formatCurrency, formatNumber, formatWholeCurrency } from "../lib/formatters.js";
 import { MoneyInput, SegmentedControl } from "./Fields.jsx";

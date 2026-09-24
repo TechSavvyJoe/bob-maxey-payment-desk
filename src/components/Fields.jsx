@@ -1,4 +1,4 @@
-import React, { forwardRef, useEffect, useId, useState } from "react";
+import { forwardRef, useId, useState } from "react";
 
 const numberFormatter = new Intl.NumberFormat("en-US", {
   maximumFractionDigits: 2,
@@ -29,11 +29,9 @@ export const MoneyInput = forwardRef(function MoneyInput(
   const generatedId = useId();
   const inputId = id || generatedId;
   const [focused, setFocused] = useState(false);
+  // `draft` is only read while focused, and onFocus seeds it from `value`,
+  // so there is nothing to sync back while the field is idle.
   const [draft, setDraft] = useState(isBlank(value) ? "" : String(value));
-
-  useEffect(() => {
-    if (!focused) setDraft(isBlank(value) ? "" : String(value));
-  }, [value, focused]);
 
   const commit = (raw) => {
     if (String(raw).trim() === "") {
@@ -81,10 +79,6 @@ export const PercentInput = ({ value, onChange, id, ariaLabel, className = "", d
   const inputId = id || generatedId;
   const [focused, setFocused] = useState(false);
   const [draft, setDraft] = useState(isBlank(value) ? "" : String(value));
-
-  useEffect(() => {
-    if (!focused) setDraft(isBlank(value) ? "" : Number(value).toFixed(2));
-  }, [value, focused]);
 
   return (
     <span className={`percent-input ${className}`}>
