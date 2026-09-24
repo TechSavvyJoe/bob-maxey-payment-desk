@@ -107,3 +107,25 @@ export const AddCircleIcon = (props) => (
     <path d="M12 7.5v9M7.5 12h9" stroke="currentColor" strokeLinecap="round" strokeWidth="1.8" />
   </Icon>
 );
+
+export const ShareIcon = (props) => (
+  <Icon {...props}>
+    <path d="M12 15V3" stroke="currentColor" strokeLinecap="round" strokeWidth="1.9" />
+    <path d="m7.5 7.5 4.5-4.5 4.5 4.5" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.9" />
+    <path
+      d="M5 12v6.5A1.5 1.5 0 0 0 6.5 20h11a1.5 1.5 0 0 0 1.5-1.5V12"
+      stroke="currentColor"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      strokeWidth="1.9"
+    />
+  </Icon>
+);
+
+export const PrintIcon = (props) => (
+  <Icon {...props}>
+    <path d="M7 9V4h10v5" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.8" />
+    <rect height="7" rx="1.4" stroke="currentColor" strokeWidth="1.8" width="16" x="4" y="9" />
+    <path d="M7 14h10v6H7z" stroke="currentColor" strokeLinejoin="round" strokeWidth="1.8" />
+  </Icon>
+);

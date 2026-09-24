@@ -836,7 +836,7 @@ a:focus-visible {
 
 .suggestion {
   display: grid;
-  grid-template-columns: auto minmax(0, 1fr) auto auto;
+  grid-template-columns: auto minmax(0, 1fr) auto;
   align-items: center;
   gap: 10px;
   padding: 9px 0;
@@ -868,6 +868,13 @@ a:focus-visible {
   white-space: nowrap;
 }
 
+.suggestion__action {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-shrink: 0;
+}
+
 .suggestion__value {
   color: var(--navy);
   font-size: 0.92rem;
@@ -887,6 +894,47 @@ a:focus-visible {
 }
 
 .apply-button:hover {
+  background: var(--blue-dark);
+}
+
+.target-undo {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 10px 14px;
+  margin: 14px 16px 0;
+  padding: 12px 14px;
+  border: 1.5px solid var(--blue);
+  border-left: 5px solid var(--blue);
+  border-radius: 8px;
+  background: var(--blue-tint);
+  color: var(--navy);
+  font-size: 0.92rem;
+  font-weight: 600;
+}
+
+.target-undo strong {
+  color: var(--navy);
+}
+
+.undo-button {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  min-height: 40px;
+  padding: 0 16px;
+  border: 0;
+  border-radius: 7px;
+  background: var(--navy);
+  color: #ffffff;
+  font-size: 0.86rem;
+  font-weight: 800;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+.undo-button:hover {
   background: var(--blue-dark);
 }
 
@@ -1284,6 +1332,54 @@ a:focus-visible {
   gap: 16px;
 }
 
+.customer-actions {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 10px 12px;
+}
+
+.share-button,
+.print-button {
+  display: inline-flex;
+  align-items: center;
+  gap: 9px;
+  min-height: 46px;
+  padding: 0 18px;
+  border-radius: 8px;
+  font-size: 0.94rem;
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.share-button {
+  border: 0;
+  background: var(--blue);
+  color: #ffffff;
+  box-shadow: 0 3px 10px rgba(6, 111, 239, 0.3);
+}
+
+.share-button:hover {
+  background: var(--blue-dark);
+}
+
+.print-button {
+  border: 1.5px solid var(--input-border);
+  background: #ffffff;
+  color: var(--navy);
+}
+
+.print-button:hover {
+  border-color: var(--navy);
+  background: var(--surface-alt);
+}
+
+.share-status {
+  color: var(--green);
+  font-size: 0.86rem;
+  font-weight: 700;
+}
+
 .customer-ledger,
 .customer-options {
   overflow: hidden;
@@ -1293,12 +1389,26 @@ a:focus-visible {
   box-shadow: var(--shadow);
 }
 
-.customer-ledger h2,
-.customer-options__heading {
+.customer-ledger h2 {
   margin: 0;
-  padding: 15px 18px;
+  padding: 14px 18px;
   border-bottom: 1px solid var(--line-strong);
   background: var(--surface-alt);
+  color: var(--navy);
+  font-size: 1rem;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.customer-options__heading {
+  padding: 14px 18px;
+  border-bottom: 1px solid var(--line-strong);
+  background: var(--surface-alt);
+}
+
+.customer-options__heading h2 {
+  margin: 0;
   color: var(--navy);
   font-size: 1rem;
   font-weight: 800;
@@ -1482,7 +1592,11 @@ a:focus-visible {
 
   .calculator-shell {
     width: min(100% - 20px, 620px);
-    padding: 12px 0 18px;
+    padding: 10px 0 16px;
+  }
+
+  .dealer-workspace {
+    gap: 11px;
   }
 
   .calculator-layout {
@@ -1499,7 +1613,7 @@ a:focus-visible {
 
   .mobile-results {
     display: block;
-    margin-bottom: 12px;
+    margin-bottom: 10px;
   }
 
   .mobile-results .results-panel {
@@ -1512,20 +1626,26 @@ a:focus-visible {
   }
 
   .results-payment {
-    padding: 16px 14px 14px;
+    padding: 14px 14px 12px;
   }
 
   .payment-number {
-    min-height: 66px;
+    min-height: 58px;
+    margin-top: 3px;
   }
 
   .payment-number strong,
   .payment-number input {
-    font-size: 3rem;
+    font-size: 2.7rem;
   }
 
   .payment-number > span:first-child {
-    font-size: 1.6rem;
+    font-size: 1.5rem;
+  }
+
+  .results-payment > p {
+    margin: 2px 0 0;
+    font-size: 0.82rem;
   }
 
   .quick-jump-nav {
@@ -1533,7 +1653,7 @@ a:focus-visible {
     grid-template-columns: repeat(4, 1fr);
     gap: 6px;
     padding: 6px;
-    margin-bottom: 10px;
+    margin-bottom: 8px;
     border: 1.5px solid var(--line-strong);
     border-radius: 10px;
     background: var(--surface);
@@ -1541,7 +1661,7 @@ a:focus-visible {
   }
 
   .quick-jump-nav button {
-    min-height: 44px;
+    min-height: 40px;
     border: 1.5px solid var(--line-strong);
     border-radius: 7px;
     background: #ffffff;
@@ -1559,41 +1679,76 @@ a:focus-visible {
   .deal-grid {
     display: grid;
     grid-template-columns: 1fr;
-    gap: 12px;
+    gap: 10px;
   }
 
   .deal-section__header {
-    min-height: 54px;
+    min-height: 46px;
     padding: 0 12px;
   }
 
   .deal-section__title {
-    font-size: 0.82rem;
-  }
-
-  .deal-section__summary {
     font-size: 0.8rem;
   }
 
+  .deal-section__summary {
+    font-size: 0.78rem;
+  }
+
   .field-row {
-    min-height: 64px;
+    min-height: 56px;
     grid-template-columns: minmax(88px, 0.8fr) minmax(0, 1.25fr);
     gap: 10px;
   }
 
+  .field-row__label span {
+    font-size: 0.72rem;
+  }
+
   .money-input,
   .percent-input {
-    min-height: 48px;
+    min-height: 44px;
   }
 
   .money-input input,
   .percent-input input {
-    height: 46px;
-    font-size: 1.05rem;
+    height: 42px;
+    font-size: 1rem;
+  }
+
+  /* Product rows: stack name above amount/tax/delete instead of a
+     4-column grid that overflows a phone width. */
+  .option-list__header {
+    display: none;
+  }
+
+  .option-row {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px 10px;
+    margin-bottom: 10px;
+  }
+
+  .option-row .text-input {
+    flex: 1 1 100%;
+  }
+
+  .option-row .money-input {
+    flex: 1 1 auto;
+    min-width: 130px;
+  }
+
+  .option-row .tax-check {
+    flex: 0 0 auto;
+  }
+
+  .option-row .icon-button {
+    flex: 0 0 auto;
+    margin-left: auto;
   }
 
   .choice-row {
-    min-height: 60px;
+    min-height: 52px;
   }
 
   .choice-row .segmented {
@@ -1601,7 +1756,7 @@ a:focus-visible {
   }
 
   .segmented button {
-    min-height: 42px;
+    min-height: 40px;
   }
 
   .financing-panel .field-row {
@@ -1609,11 +1764,16 @@ a:focus-visible {
   }
 
   .term-control {
-    padding: 12px 12px 14px;
+    padding: 10px 12px 12px;
   }
 
   .term-buttons button {
-    min-height: 44px;
+    min-height: 42px;
+  }
+
+  .target-panel__heading {
+    min-height: 46px;
+    padding: 8px 12px;
   }
 
   .target-panel__heading p {
@@ -1626,12 +1786,12 @@ a:focus-visible {
   }
 
   .target-setup {
-    padding: 12px;
+    padding: 10px 12px;
   }
 
   .target-tabs {
     width: 100%;
-    margin-bottom: 10px;
+    margin-bottom: 8px;
   }
 
   .target-input-row {
@@ -1639,22 +1799,68 @@ a:focus-visible {
   }
 
   .target-summary {
-    margin-top: 8px;
+    margin-top: 6px;
     font-size: 0.8rem;
   }
 
   .suggestion-list {
     display: grid;
     grid-template-columns: 1fr;
-    padding: 8px 12px;
+    padding: 6px 12px;
   }
 
+  /* Stack each suggestion's copy above its value/Apply row so Apply stays
+     reachable instead of being squeezed off a phone-width screen. */
   .suggestion {
-    grid-template-columns: auto minmax(0, 1fr) auto;
+    grid-template-columns: auto minmax(0, 1fr);
+    row-gap: 6px;
+    align-items: start;
+    padding: 8px 0;
+  }
+
+  .suggestion > svg {
+    grid-column: 1;
+    grid-row: 1;
+    margin-top: 2px;
+  }
+
+  .suggestion__copy {
+    grid-column: 2;
+    grid-row: 1;
+  }
+
+  .suggestion__copy span {
+    white-space: normal;
+  }
+
+  .suggestion__action {
+    grid-column: 2;
+    grid-row: 2;
+    justify-content: space-between;
   }
 
   .suggestion .apply-button {
-    display: none;
+    min-height: 40px;
+  }
+
+  .target-undo {
+    margin: 10px 12px 0;
+    padding: 10px 12px;
+  }
+
+  .undo-button {
+    width: 100%;
+    justify-content: center;
+  }
+
+  .customer-actions {
+    width: 100%;
+  }
+
+  .share-button,
+  .print-button {
+    flex: 1 1 auto;
+    justify-content: center;
   }
 
   .payment-grid-section {
@@ -1790,8 +1996,8 @@ a:focus-visible {
   }
 
   .mobile-payment-options button {
-    min-height: 68px;
-    padding: 10px;
+    min-height: 58px;
+    padding: 8px 10px;
     display: grid;
     grid-template-columns: 1fr auto;
     align-items: center;
@@ -1840,12 +2046,26 @@ a:focus-visible {
   }
 
   .customer-content {
-    gap: 12px;
+    gap: 10px;
+  }
+
+  .customer-actions {
+    margin-bottom: -2px;
   }
 
   .customer-ledger,
   .customer-options {
     border-radius: 10px;
+  }
+
+  .customer-ledger__row {
+    padding: 9px 16px;
+    font-size: 0.92rem;
+  }
+
+  .customer-options__row {
+    min-height: 46px;
+    padding: 0 16px;
   }
 
   .app-footer {
@@ -1937,5 +2157,34 @@ a:focus-visible {
     scroll-behavior: auto !important;
     transition-duration: 0.01ms !important;
     animation-duration: 0.01ms !important;
+  }
+}
+
+/* ---------- Print (customer proposal) ---------- */
+
+@media print {
+  body {
+    background: #ffffff;
+  }
+
+  .app-header,
+  .page-intro,
+  .customer-actions,
+  .results-panel--customer,
+  .mobile-nav,
+  .app-footer {
+    display: none !important;
+  }
+
+  .customer-layout {
+    display: block;
+    width: 100%;
+  }
+
+  .customer-ledger,
+  .customer-options {
+    box-shadow: none;
+    border: 1px solid #000000;
+    break-inside: avoid;
   }
 }

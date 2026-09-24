@@ -1,7 +1,25 @@
-import React from "react";
+import React, { useEffect, useRef, useState } from "react";
 import { calculatePayment } from "../lib/calculations.js";
 import { formatCurrency, formatNumber, formatWholeCurrency } from "../lib/formatters.js";
+import { PrintIcon, ShareIcon } from "./Icons.jsx";
 import ResultsPanel from "./ResultsPanel.jsx";
+
+const buildShareText = (dealInput, result) => {
+  const lines = ["Bob Maxey Ford — Purchase Proposal"];
+  if (result.isFinanced) {
+    lines.push(
+      `Estimated payment: ${formatWholeCurrency(result.monthlyPayment)}/mo`,
+      `${dealInput.termMonths} months at ${formatNumber(dealInput.apr)}% APR`,
+      `Amount financed: ${formatCurrency(result.amountFinanced)}`,
+    );
+  } else if (result.customerCredit > 0) {
+    lines.push(`Estimated customer credit: ${formatCurrency(result.customerCredit)}`);
+  } else {
+    lines.push(`Cash due after trade: ${formatCurrency(result.dueAtSigning)}`);
+  }
+  lines.push(`Out-the-door: ${formatCurrency(result.outTheDoor)}`);
+  return lines.join("\n");
+};
 
 const LedgerRow = ({ label, value, total = false, className = "" }) => (
   <div className={`customer-ledger__row ${total ? "is-total" : ""} ${className}`}>
@@ -13,10 +31,58 @@ const LedgerRow = ({ label, value, total = false, className = "" }) => (
 export default function CustomerView({ dealInput, result, gridRates, paymentTargetProps }) {
   const optionTerms = [...new Set([dealInput.termMonths, 60, 72, 84])].sort((a, b) => a - b);
   const taxesAndFees = result.salesTax + result.fees.totalFees;
+  const canNativeShare = typeof navigator !== "undefined" && typeof navigator.share === "function";
+  const [shareStatus, setShareStatus] = useState(null);
+  const statusTimeout = useRef(null);
+
+  useEffect(() => () => window.clearTimeout(statusTimeout.current), []);
+
+  const flashStatus = (message) => {
+    setShareStatus(message);
+    window.clearTimeout(statusTimeout.current);
+    statusTimeout.current = window.setTimeout(() => setShareStatus(null), 3200);
+  };
+
+  const handleShare = async () => {
+    const text = buildShareText(dealInput, result);
+    if (canNativeShare) {
+      try {
+        await navigator.share({ title: "Bob Maxey Ford — Purchase Proposal", text, url: window.location.href });
+      } catch (error) {
+        if (error?.name !== "AbortError") flashStatus("Couldn't open the share sheet.");
+      }
+      return;
+    }
+    if (navigator.clipboard?.writeText) {
+      try {
+        await navigator.clipboard.writeText(`${text}\n${window.location.href}`);
+        flashStatus("Copied deal summary to clipboard.");
+        return;
+      } catch {
+        // Fall through to print.
+      }
+    }
+    window.print();
+  };
 
   return (
     <div className="customer-layout">
       <main className="customer-content">
+        <div className="customer-actions">
+          <button className="share-button" onClick={handleShare} type="button">
+            <ShareIcon size={20} />
+            {canNativeShare ? "Share with customer" : "Share or copy summary"}
+          </button>
+          <button className="print-button" onClick={() => window.print()} type="button">
+            <PrintIcon size={19} />
+            Print
+          </button>
+          {shareStatus ? (
+            <span aria-live="polite" className="share-status">
+              {shareStatus}
+            </span>
+          ) : null}
+        </div>
         <section className="customer-ledger">
           <h2>Selected deal</h2>
           <LedgerRow label="Vehicle price" value={formatCurrency(result.salePrice)} />
