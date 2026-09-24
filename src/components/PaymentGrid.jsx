@@ -1,4 +1,4 @@
-import { useMemo } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { calculateRateGrid, RATE_GRID_DEFAULTS } from "../lib/calculations.js";
 import { formatCurrency, formatNumber, formatWholeCurrency } from "../lib/formatters.js";
 import { MoneyInput, PercentInput } from "./Fields.jsx";
@@ -16,7 +16,17 @@ export default function PaymentGrid({
   onApplyScenario,
   onMobileClose,
   mobileOpen = false,
+  hasInputErrors = false,
+  canCompare = true,
 }) {
+  const [isMobile, setIsMobile] = useState(() => window.matchMedia("(max-width: 800px)").matches);
+  const [draftCache, setDraftCache] = useState({});
+  useEffect(() => {
+    const media = window.matchMedia("(max-width: 800px)");
+    const handleChange = (event) => setIsMobile(event.matches);
+    media.addEventListener("change", handleChange);
+    return () => media.removeEventListener("change", handleChange);
+  }, []);
   const grid = useMemo(
     () =>
       calculateRateGrid(dealInput, {
@@ -32,7 +42,8 @@ export default function PaymentGrid({
     Math.abs(dealInput.apr - cell.apr) < 0.005 &&
     Math.abs(dealInput.cashDown - cell.cashDown) < 0.005;
 
-  const apply = (cell) => onApplyScenario({
+  const isUnavailable = (cell) => !canCompare || hasInputErrors || result.isComplete === false || result.salePrice <= 0 || cell.amountFinanced < 0;
+  const apply = (cell) => !isUnavailable(cell) && onApplyScenario({
     termMonths: cell.termMonths,
     apr: cell.apr,
     cashDown: cell.cashDown,
@@ -42,12 +53,16 @@ export default function PaymentGrid({
     <section className={`payment-grid-section ${mobileOpen ? "is-mobile-open" : ""}`} id="payment-grid">
       <div className="grid-heading">
         <div>
-          <h2>Payment grid</h2>
+            <h2 id="payment-grid-heading" tabIndex={-1}>Payment grid</h2>
           <p>Compare terms, rates, and down payments without rebuilding the deal.</p>
         </div>
         <button className="back-button" onClick={() => {
-          if (window.matchMedia("(max-width: 760px)").matches) onMobileClose?.();
-          else document.getElementById("calculator-top")?.scrollIntoView({ behavior: "smooth" });
+          if (window.matchMedia("(max-width: 800px)").matches) onMobileClose?.();
+          else {
+            const destination = document.getElementById("worksheet-heading");
+            destination?.focus({ preventScroll: true });
+            destination?.scrollIntoView({ behavior: window.matchMedia("(prefers-reduced-motion: reduce)").matches ? "instant" : "smooth" });
+          }
         }} type="button">
           <ArrowIcon direction="up" size={20} />
           Back to calculator
@@ -59,7 +74,7 @@ export default function PaymentGrid({
         <span>{formatWholeCurrency(result.amountBeforeCashDown)} before cash down</span>
       </div>
 
-      <div className="desktop-rate-grid">
+      {!isMobile ? <div className="desktop-rate-grid">
         <table>
           <caption className="sr-only">
             Monthly payment estimates by loan term, APR, and total cash down
@@ -72,6 +87,8 @@ export default function PaymentGrid({
                 <th key={column.key} scope="col">
                   <MoneyInput
                     ariaLabel={`Down payment column ${columnIndex + 1}`}
+                    savedDraft={draftCache[`down-${columnIndex}`]}
+                    onDraftChange={(draft) => setDraftCache((current) => ({ ...current, [`down-${columnIndex}`]: draft }))}
                     compact
                     onChange={(value) => onDownPaymentChange(columnIndex, value)}
                     value={downPayments[columnIndex]}
@@ -88,6 +105,8 @@ export default function PaymentGrid({
                 <td className="rate-cell">
                   <PercentInput
                     ariaLabel={`APR for ${row.termMonths} months`}
+                    savedDraft={draftCache[`apr-${row.termMonths}`]}
+                    onDraftChange={(draft) => setDraftCache((current) => ({ ...current, [`apr-${row.termMonths}`]: draft }))}
                     onChange={(value) => onRateChange(row.termMonths, value)}
                     value={rates[row.termMonths]}
                   />
@@ -97,10 +116,12 @@ export default function PaymentGrid({
                     <button
                       aria-label={`Use ${cell.termMonths} months at ${formatNumber(cell.apr)} percent with ${formatCurrency(cell.cashDown)} down for ${formatCurrency(cell.monthlyPayment)} per month`}
                       aria-pressed={isSelected(cell)}
+                      disabled={isUnavailable(cell)}
                       onClick={() => apply(cell)}
                       type="button"
                     >
-                      {formatWholeCurrency(cell.monthlyPayment)}
+                      {formatCurrency(cell.monthlyPayment, { cents: true })}
+                      {isSelected(cell) ? <span className="grid-selected-label">Selected</span> : null}
                     </button>
                   </td>
                 ))}
@@ -108,9 +129,9 @@ export default function PaymentGrid({
             ))}
           </tbody>
         </table>
-      </div>
+      </div> : null}
 
-      <div className="mobile-rate-grid">
+      {isMobile ? <div className="mobile-rate-grid">
         <section className="mobile-down-editor">
           <h3>Down payment amounts</h3>
           <p>Edit the total cash-down amounts to compare payments.</p>
@@ -118,6 +139,8 @@ export default function PaymentGrid({
             {downPayments.map((value, index) => (
               <MoneyInput
                 ariaLabel={`Down payment option ${index + 1}`}
+                savedDraft={draftCache[`down-${index}`]}
+                onDraftChange={(draft) => setDraftCache((current) => ({ ...current, [`down-${index}`]: draft }))}
                 key={index}
                 onChange={(next) => onDownPaymentChange(index, next)}
                 value={value}
@@ -135,6 +158,8 @@ export default function PaymentGrid({
                   <span>APR</span>
                   <PercentInput
                     ariaLabel={`APR for ${row.termMonths} months`}
+                    savedDraft={draftCache[`apr-${row.termMonths}`]}
+                    onDraftChange={(draft) => setDraftCache((current) => ({ ...current, [`apr-${row.termMonths}`]: draft }))}
                     onChange={(value) => onRateChange(row.termMonths, value)}
                     value={rates[row.termMonths]}
                   />
@@ -143,14 +168,17 @@ export default function PaymentGrid({
               <div className="mobile-payment-options">
                 {row.cells.map((cell) => (
                   <button
+                    aria-label={`Use ${cell.termMonths} months at ${formatNumber(cell.apr)} percent with ${formatCurrency(cell.cashDown)} down for ${formatCurrency(cell.monthlyPayment, { cents: true })} per month`}
                     aria-pressed={isSelected(cell)}
+                    disabled={isUnavailable(cell)}
                     className={isSelected(cell) ? "is-selected" : ""}
                     key={cell.key}
                     onClick={() => apply(cell)}
                     type="button"
                   >
                     <span>{formatWholeCurrency(cell.cashDown)} down</span>
-                    <strong>{formatWholeCurrency(cell.monthlyPayment)}/mo</strong>
+                    <strong>{formatCurrency(cell.monthlyPayment, { cents: true })}/mo</strong>
+                    {isSelected(cell) ? <span className="grid-selected-label">Selected</span> : null}
                     <ArrowIcon direction="right" size={19} />
                   </button>
                 ))}
@@ -158,7 +186,7 @@ export default function PaymentGrid({
             </section>
           ))}
         </div>
-      </div>
+      </div> : null}
 
       <div className="grid-footer">
         <div>

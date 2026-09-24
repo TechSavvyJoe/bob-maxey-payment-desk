@@ -1,41 +1,47 @@
 # Bob Maxey Payment Desk
 
-A fast, mobile-friendly vehicle payment calculator for dealership sales conversations. It runs entirely in the browser and does not save or transmit customer information.
+A browser-based **Michigan vehicle purchase estimator** for dealership conversations. Build a deal, compare payments, and prepare an itemized customer estimate. It is not a lender approval, contracting system, or replacement for the dealership's approved deal figures.
 
-## What it includes
+## Start and verify
 
-- Live payment, amount-financed, out-the-door, tax, fee, and trade-equity calculations
-- Editable target payment, target out-the-door, and target amount-financed tools with exact adjustment options
-- Editable term, APR, and total-down-payment rate grid; tap any payment to apply it
-- Dealer View with calculation detail and a simplified Customer View using the same deal figures
-- Michigan 6% sales tax and 2026 trade tax credit capped at $12,000, based on trade allowance rather than payoff
-- Fixed dealership defaults: $280 taxable document fee and $34 taxable CRV fee
-- Transfer fees: $10 plate transfer, $5 state transfer fee, and $15 cash or $16 financed title fee
-- Editable new-plate amount that replaces the two transfer fees while the $15 cash or $16 financed title fee remains automatic
-- Service contracts, GAP, accessories, and other add-ons automatically included in amount financed on finance deals and in the cash total on cash deals
-- Responsive mobile accordions, compact term cards, clear borders, and large touch-friendly fields
+Use Node.js 22 (see `.nvmrc`) and the committed lockfile.
 
-## Run locally
-
-```bash
-npm install
+```sh
+npm ci
+npx playwright install chromium webkit
 npm run dev
 ```
 
-## Verify and build
-
-```bash
-npm test
-npm run build
+```sh
+npm run check
+npm run check:release
 ```
 
-## Calculation notes
+- `check`: lint, unit/regression tests, and production build.
+- `check:release`: the same checks plus Playwright against the built site.
+- `test:e2e`: browser tests only; run `build` first if the output is stale.
+- Browser projects: desktop Chromium, mobile Chromium, and desktop WebKit. Linux CI installs their OS dependencies with `playwright install --with-deps`.
 
-The Michigan trade tax credit is calculated from the trade allowance, capped at $12,000 for 2026. Trade payoff affects equity but does not reduce the tax credit. Optional products can be marked taxable when appropriate.
+## Workflow
 
-Sources:
+Enter a selling price, date, optional vehicle/stock reference, trade allowance/payoff, and down payment. Select finance or cash and transfer or new plates. Enter new-registration cost when required.
 
-- [Michigan Treasury RAB 2022-17](https://www.michigan.gov/taxes/rep-legal/rab/2022-revenue-administrative-bulletins/revenue-administrative-bulletin-2022-17)
-- [Michigan Department of State Dealer Manual, Chapter 8](https://www.michigan.gov/-/media/Project/Websites/sos/01preston/Dealer_Manual_Chapter_8.pdf?rev=0add5ff85e614bca8738c37d0e0ab072)
+Products use **Service Contract**, **Gap**, or **Other**. Before a positive Other charge can be exported, enter a name and explicitly select **Taxable** or **Not taxable**. Verify each product's taxability; category selection does not establish eligibility or tax advice.
 
-This tool provides estimates only. Actual lender payments, taxes, state charges, and final deal figures should be confirmed in the dealership's approved systems.
+Payment results are outputs. **Set payment target** opens the target tool; suggestions show the result they will apply. An Undo expires after a later deal edit. Customer view provides the selected payment, reconciled charges/trade/cash, assumptions, and separate Copy summary, Share, and Print actions. Incomplete or invalid deals cannot be exported through these controls.
+
+## Rules and limits
+
+- Michigan 6% tax and eligible trade credit by deal date: $12,000 in 2026, $13,000 in 2027, $14,000 in 2028, and no scheduled cap from 2029.
+- The current fee/tax review window ends **December 31, 2026**. Later dates show the scheduled credit but require policy review before proposal export.
+- Document fee uses a conservative estimate: lesser of $280 and 5% of selling price, rounded down to cents. The dealership must confirm the approved contract basis.
+- The $34 taxable CRV amount is a dealership assumption requiring verification, not a represented state mandate.
+- APR is normalized consistently to two decimal places. Payments use regular monthly amortization; interest and total payments are estimates, not a verified lender installment schedule.
+
+Leases, nonresident/exempt transactions, special registrations, and manufacturer rebates are outside the current model. Do not disguise a manufacturer rebate as a selling-price discount. Sources and assumptions are versioned in [policy.js](src/lib/policy.js).
+
+## Data and operation
+
+Entered figures remain in browser memory unless the user copies, shares, or prints them. There is no saved-deal backend, analytics SDK, or external font request. Hosting still serves ordinary web requests. Refresh/close can lose the deal; a navigation warning is a convenience, not storage or recovery. Installation metadata does not provide offline availability.
+
+[Handoff and release guide](docs/HANDOFF.md) · [Acceptance checklist](docs/ACCEPTANCE.md) · [Review resolution map](docs/REVIEW-RESOLUTION.md)

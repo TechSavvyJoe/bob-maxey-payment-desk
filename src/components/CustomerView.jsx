@@ -1,163 +1,135 @@
-import { useEffect, useRef, useState } from "react";
-import { calculatePayment } from "../lib/calculations.js";
-import { formatCurrency, formatNumber, formatWholeCurrency } from "../lib/formatters.js";
+import { useId, useMemo, useState } from "react";
+import { formatCurrency, formatNumber } from "../lib/formatters.js";
+import { createProposalSnapshot, formatProposalText } from "../lib/proposal.js";
+import { APP_VERSION, BUILD_ID } from "../lib/release.js";
 import { PrintIcon, ShareIcon } from "./Icons.jsx";
 import ResultsPanel from "./ResultsPanel.jsx";
 
-const buildShareText = (dealInput, result) => {
-  const lines = ["Bob Maxey Ford — Purchase Proposal"];
-  if (result.isFinanced) {
-    lines.push(
-      `Estimated payment: ${formatWholeCurrency(result.monthlyPayment)}/mo`,
-      `${dealInput.termMonths} months at ${formatNumber(dealInput.apr)}% APR`,
-      `Amount financed: ${formatCurrency(result.amountFinanced)}`,
-    );
-  } else if (result.customerCredit > 0) {
-    lines.push(`Estimated customer credit: ${formatCurrency(result.customerCredit)}`);
-  } else {
-    lines.push(`Cash due after trade: ${formatCurrency(result.dueAtSigning)}`);
-  }
-  lines.push(`Out-the-door: ${formatCurrency(result.outTheDoor)}`);
-  return lines.join("\n");
-};
-
-const LedgerRow = ({ label, value, total = false, className = "" }) => (
-  <div className={`customer-ledger__row ${total ? "is-total" : ""} ${className}`}>
-    <span>{label}</span>
-    <strong>{value}</strong>
+const money = (value) => formatCurrency(value, { cents: true });
+const LedgerRow = ({ item, total = false }) => (
+  <div className={"customer-ledger__row" + (total ? " is-total" : "")}>
+    <span>{item.label}</span><strong>{money(item.amount)}</strong>
   </div>
 );
 
-export default function CustomerView({ dealInput, result, gridRates, paymentTargetProps }) {
-  const optionTerms = [...new Set([dealInput.termMonths, 60, 72, 84])].sort((a, b) => a - b);
-  const taxesAndFees = result.salesTax + result.fees.totalFees;
+export default function CustomerView({ dealInput, result, gridRates, hasInputErrors = false }) {
+  const [createdAt] = useState(() => new Date().toISOString());
+  const snapshot = useMemo(() => createProposalSnapshot({
+    dealInput, result, gridRates, hasInputErrors, createdAt, version: APP_VERSION + " (" + BUILD_ID + ")",
+  }), [dealInput, result, gridRates, hasInputErrors, createdAt]);
+  const [status, setStatus] = useState("");
+  const [copyFallback, setCopyFallback] = useState(false);
+  const [busy, setBusy] = useState(false);
+  const warningId = useId();
   const canNativeShare = typeof navigator !== "undefined" && typeof navigator.share === "function";
-  const [shareStatus, setShareStatus] = useState(null);
-  const statusTimeout = useRef(null);
+  const summaryText = () => formatProposalText(snapshot, { calculatorUrl: window.location.href });
 
-  useEffect(() => () => window.clearTimeout(statusTimeout.current), []);
-
-  const flashStatus = (message) => {
-    setShareStatus(message);
-    window.clearTimeout(statusTimeout.current);
-    statusTimeout.current = window.setTimeout(() => setShareStatus(null), 3200);
+  const handleCopy = async () => {
+    if (!snapshot.summary.canExport || busy) return;
+    setBusy(true);
+    setCopyFallback(false);
+    try {
+      if (!navigator.clipboard?.writeText) throw new Error("Clipboard unavailable");
+      await navigator.clipboard.writeText(summaryText());
+      setStatus("Complete estimate copied to clipboard.");
+    } catch {
+      setCopyFallback(true);
+      setStatus("Automatic copy is unavailable. Select and copy the estimate text below.");
+    } finally {
+      setBusy(false);
+    }
   };
 
   const handleShare = async () => {
-    const text = buildShareText(dealInput, result);
-    if (canNativeShare) {
-      try {
-        await navigator.share({ title: "Bob Maxey Ford — Purchase Proposal", text, url: window.location.href });
-        return;
-      } catch (error) {
-        if (error?.name === "AbortError") return;
-        // Native share failed for a real reason (permissions policy,
-        // unsupported payload, etc.) — fall through to the clipboard/print
-        // fallback below instead of leaving the user with nothing.
-      }
+    if (!snapshot.summary.canExport || busy || !canNativeShare) return;
+    setBusy(true);
+    try {
+      // The text labels this as a generic calculator link, never a saved quote.
+      await navigator.share({ title: snapshot.dealership + " — " + snapshot.title, text: summaryText() });
+      setStatus("Estimate shared.");
+    } catch (error) {
+      setStatus(error?.name === "AbortError" ? "Sharing canceled." : "Sharing is unavailable. Use Copy summary or Print instead.");
+    } finally {
+      setBusy(false);
     }
-    if (navigator.clipboard?.writeText) {
-      try {
-        await navigator.clipboard.writeText(`${text}\n${window.location.href}`);
-        flashStatus("Copied deal summary to clipboard.");
-        return;
-      } catch {
-        // Fall through to print.
-      }
-    }
-    window.print();
+  };
+
+  const handlePrint = () => {
+    if (!snapshot.summary.canExport) return;
+    try { window.print(); }
+    catch { setStatus("Printing is unavailable in this browser. Use Copy summary or open the calculator in a browser that supports printing."); }
   };
 
   return (
     <div className="customer-layout">
       <main className="customer-content">
+        <header className="proposal-identity">
+          <p className="proposal-dealership">{snapshot.dealership}</p>
+          <h2>{snapshot.title}</h2>
+          {snapshot.vehicleReference ? <p className="proposal-vehicle">Vehicle / stock: {snapshot.vehicleReference}</p> : null}
+          <p className="proposal-meta">Created {snapshot.createdLabel} Eastern time</p>
+          <p className="proposal-meta">Reference {snapshot.reference} · App {snapshot.version}</p>
+        </header>
         <div className="customer-actions">
-          <button className="share-button" onClick={handleShare} type="button">
-            <ShareIcon size={20} />
-            {canNativeShare ? "Share with customer" : "Share or copy summary"}
-          </button>
-          <button className="print-button" onClick={() => window.print()} type="button">
-            <PrintIcon size={19} />
-            Print
-          </button>
-          {shareStatus ? (
-            <span aria-live="polite" className="share-status">
-              {shareStatus}
-            </span>
+          <button aria-describedby={!snapshot.summary.canExport ? warningId : undefined} className="share-button" disabled={!snapshot.summary.canExport || busy} onClick={handleCopy} type="button">Copy summary</button>
+          {canNativeShare ? (
+            <button aria-describedby={!snapshot.summary.canExport ? warningId : undefined} className="share-button" disabled={!snapshot.summary.canExport || busy} onClick={handleShare} type="button">
+              <ShareIcon size={20} />Share
+            </button>
           ) : null}
+          <button aria-describedby={!snapshot.summary.canExport ? warningId : undefined} className="print-button" disabled={!snapshot.summary.canExport || busy} onClick={handlePrint} type="button">
+            <PrintIcon size={19} />Print
+          </button>
+          <span className="share-status" role="status">{status}</span>
         </div>
-        <section className="customer-ledger">
-          <h2>Selected deal</h2>
-          <LedgerRow label="Vehicle price" value={formatCurrency(result.salePrice)} />
-          {result.optionalItemsTotal > 0 ? (
-            <LedgerRow label="Selected options" value={`+${formatCurrency(result.optionalItemsTotal)}`} />
-          ) : null}
-          {result.isFinanced ? <LedgerRow label="Cash down" value={formatCurrency(result.cashDown)} /> : null}
-          <LedgerRow label="Trade allowance" value={formatCurrency(result.tradeAllowance)} />
-          {result.tradeEquity < 0 ? (
-            <LedgerRow
-              className="is-negative"
-              label="Negative trade equity"
-              value={`+${formatCurrency(result.negativeEquity)}`}
-            />
-          ) : (
-            <LedgerRow
-              label="Positive trade equity"
-              value={`−${formatCurrency(result.positiveEquity)}`}
-            />
-          )}
-          <LedgerRow label="Taxes & fees" value={formatCurrency(taxesAndFees)} />
-          <LedgerRow label="Out-the-door" total={result.isFinanced} value={formatCurrency(result.outTheDoor)} />
-          {result.isFinanced ? (
-            <LedgerRow label="Due at signing" value={formatCurrency(result.dueAtSigning)} />
-          ) : result.customerCredit > 0 ? (
-            <LedgerRow label="Estimated customer credit" total value={formatCurrency(result.customerCredit)} />
-          ) : (
-            <LedgerRow label="Cash due after trade" total value={formatCurrency(result.dueAtSigning)} />
-          )}
-        </section>
-
-        {result.isFinanced ? (
+        {!snapshot.summary.canExport ? (
+          <section className="proposal-incomplete result-warning" id={warningId}>
+            <h3>Complete the estimate before sharing or printing</h3>
+            {snapshot.summary.reasons.map((reason) => <p key={reason}>{reason}</p>)}
+          </section>
+        ) : null}
+        {copyFallback && snapshot.summary.canExport ? (
+          <label className="proposal-copy-fallback">
+            Copyable estimate summary
+            <textarea onFocus={(event) => event.target.select()} readOnly rows={12} value={summaryText()} />
+          </label>
+        ) : null}
+        {snapshot.groups.map((section) => (
+          <section className="customer-ledger" key={section.id}>
+            <h2>{section.title}</h2>
+            {section.rows.map((item) => <LedgerRow item={item} key={item.id} />)}
+            <LedgerRow item={section.total} total />
+          </section>
+        ))}
+        {snapshot.summary.isFinanced ? (
           <section className="customer-options">
             <div className="customer-options__heading">
               <h2>Payment options</h2>
-              <p>Ask your salesperson to adjust the term, rate, or cash down.</p>
+              <p>Same deal and cash due; rates are assumptions subject to lender approval.</p>
             </div>
             <div className="customer-options__table" role="table" aria-label="Customer payment options">
               <div className="customer-options__row is-header" role="row">
-                <span role="columnheader">Term</span>
-                <span role="columnheader">APR</span>
-                <span role="columnheader">Estimated payment</span>
+                <span role="columnheader">Term</span><span role="columnheader">APR</span><span role="columnheader">Payment & estimated interest</span>
               </div>
-              {optionTerms.map((term) => {
-                const apr = Number(gridRates[term] ?? dealInput.apr);
-                const payment = calculatePayment({
-                  principal: result.amountFinanced,
-                  apr,
-                  termMonths: term,
-                }).monthlyPayment;
-                const selected = term === dealInput.termMonths;
-                return (
-                  <div className={`customer-options__row ${selected ? "is-selected" : ""}`} key={term} role="row">
-                    <span role="cell">
-                      <i aria-hidden="true" className="selection-dot" />
-                      {term} months
-                    </span>
-                    <span role="cell">{formatNumber(apr)}%</span>
-                    <strong role="cell">{formatWholeCurrency(payment)}/mo</strong>
-                  </div>
-                );
-              })}
+              {snapshot.comparisonRows.map((option) => (
+                <div className={"customer-options__row" + (option.selected ? " is-selected" : "")} key={option.termMonths} role="row">
+                  <span role="cell">{option.termMonths} months{option.selected ? <strong className="selected-option-label"> ✓ Selected</strong> : null}</span>
+                  <span role="cell">{formatNumber(option.apr)}%</span>
+                  <span role="cell"><strong>{money(option.monthlyPayment)}/mo</strong><small className="option-interest">Estimated interest {money(option.totalInterest)}</small><small className="option-interest">Total loan payments {money(option.totalOfPayments)}</small></span>
+                </div>
+              ))}
             </div>
+            <p className="section-note">Interest is an analytical estimate. The lender's payment schedule and final installment may differ.</p>
           </section>
         ) : null}
+        <footer className="proposal-qualification">
+          <h2>Estimate assumptions</h2>
+          <ul>{snapshot.assumptions.map((assumption) => <li key={assumption}>{assumption}</li>)}</ul>
+          <p><strong>{snapshot.qualification}</strong></p>
+          <p className="proposal-meta">{snapshot.dealership} · {snapshot.reference}</p>
+        </footer>
       </main>
-      <ResultsPanel
-        customer
-        dealInput={dealInput}
-        result={result}
-        {...paymentTargetProps}
-      />
+      <ResultsPanel customer dealInput={dealInput} result={result} hasInputErrors={hasInputErrors} />
     </div>
   );
 }

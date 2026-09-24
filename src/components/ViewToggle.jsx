@@ -4,7 +4,8 @@ import { ResetIcon } from "./Icons.jsx";
 export default function ViewToggle({ view, onViewChange, onReset }) {
   return (
     <header className="app-header">
-      <a aria-label="Payment Desk home" className="brand" href="#calculator-top">
+      <a aria-label="Payment Desk home" className="brand" href="#worksheet-heading"
+        onClick={(event) => { event.preventDefault(); onViewChange("dealer"); }}>
         <strong>BOB MAXEY</strong>
         <span aria-hidden="true" className="brand__rule" />
         <span>PAYMENT DESK</span>

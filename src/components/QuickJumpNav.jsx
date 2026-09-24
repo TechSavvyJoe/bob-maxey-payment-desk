@@ -9,7 +9,17 @@ const sections = [
 
 export default function QuickJumpNav() {
   const jump = (target) => {
-    document.getElementById(target)?.scrollIntoView({ behavior: "smooth", block: "start" });
+    const section = document.getElementById(target);
+    if (!section) return;
+    const destination = section.querySelector(".deal-section__header, h2");
+    if (destination) {
+      if (destination.tagName !== "BUTTON") destination.tabIndex = -1;
+      destination.focus({ preventScroll: true });
+    }
+    section.scrollIntoView({
+      behavior: window.matchMedia("(prefers-reduced-motion: reduce)").matches ? "instant" : "smooth",
+      block: "start",
+    });
   };
 
   return (

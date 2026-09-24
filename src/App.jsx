@@ -1,315 +1,168 @@
-import { useMemo, useRef, useState } from "react";
-import { calculateDeal } from "./lib/calculations.js";
-import CustomerView from "./components/CustomerView.jsx";
-import DealerView from "./components/DealerView.jsx";
-import MobileNav from "./components/MobileNav.jsx";
-import PaymentGrid from "./components/PaymentGrid.jsx";
-import QuickJumpNav from "./components/QuickJumpNav.jsx";
-import ResultsPanel from "./components/ResultsPanel.jsx";
-import ViewToggle from "./components/ViewToggle.jsx";
+import { useCallback, useEffect, useMemo, useReducer, useRef, useState } from 'react';
+import { calculateDeal } from './lib/calculations.js';
+import { createDeskState, deskReducer, hasDealEdits } from './lib/dealState.js';
+import { APP_VERSION, BUILD_ID } from './lib/release.js';
+import { getProposalStatus } from './lib/proposal.js';
+import CustomerView from './components/CustomerView.jsx';
+import DealerView from './components/DealerView.jsx';
+import MobileNav from './components/MobileNav.jsx';
+import PaymentGrid from './components/PaymentGrid.jsx';
+import QuickJumpNav from './components/QuickJumpNav.jsx';
+import ResultsPanel from './components/ResultsPanel.jsx';
+import ViewToggle from './components/ViewToggle.jsx';
+import { ValidationContext } from './components/ValidationContext.jsx';
+import EstimateDateField from './components/EstimateDateField.jsx';
 
-// Default rate-grid APRs: 6% through 60 months, 6.5% at 72, 7% at 84.
-// These are just starting points — every rate is editable per deal.
-const DEFAULT_APR_BY_TERM = Object.freeze({
-  36: 6,
-  48: 6,
-  60: 6,
-  72: 6.5,
-  84: 7,
-});
-
-const INITIAL_DEAL = Object.freeze({
-  salePrice: "",
-  cashDown: "",
-  tradeAllowance: "",
-  tradePayoff: "",
-  dealType: "finance",
-  plateMode: "transfer",
-  newPlateAmount: "",
-  rollNegativeEquity: true,
-  apr: DEFAULT_APR_BY_TERM[72],
-  termMonths: 72,
-  optionalItems: [],
-});
-
-const INITIAL_RATES = Object.freeze({ ...DEFAULT_APR_BY_TERM });
-
-const INITIAL_DOWN_PAYMENTS = Object.freeze(["", "", "", ""]);
-
-const freshDeal = () => ({
-  ...INITIAL_DEAL,
-  optionalItems: INITIAL_DEAL.optionalItems.map((item) => ({ ...item })),
+const allOpen = () => ({ vehicle: true, trade: true, taxes: true, roll: true });
+const isMobile = () => window.matchMedia('(max-width: 800px)').matches;
+const focusDestination = id => requestAnimationFrame(() => {
+  const node = document.getElementById(id);
+  if (!node) return;
+  node.focus({ preventScroll: true });
+  node.scrollIntoView({ behavior: window.matchMedia('(prefers-reduced-motion: reduce)').matches ? 'instant' : 'smooth', block: 'start' });
 });
 
 export default function App() {
-  const [view, setView] = useState("dealer");
-  const [dealInput, setDealInput] = useState(freshDeal);
-  const [gridRates, setGridRates] = useState({ ...INITIAL_RATES });
-  const [gridDownPayments, setGridDownPayments] = useState([...INITIAL_DOWN_PAYMENTS]);
-  const [targetType, setTargetType] = useState("payment");
-  const [targetValues, setTargetValues] = useState({
-    payment: "",
-    outTheDoor: "",
-    amountFinanced: "",
-  });
-  const [mobileGridOpen, setMobileGridOpen] = useState(false);
+  const [state, dispatch] = useReducer(deskReducer, undefined, createDeskState);
+  const { deal: dealInput, view, mobileGridOpen, gridRates, gridDownPayments, lastRoll, resetCount } = state;
+  const [targetType, setTargetType] = useState('payment');
+  const [targetValues, setTargetValues] = useState({ payment: '', outTheDoor: '', amountFinanced: '' });
   const [solverExpanded, setSolverExpanded] = useState(false);
-  const [lastRoll, setLastRoll] = useState(null);
-  const [resetCount, setResetCount] = useState(0);
-  const [accordions, setAccordions] = useState({
-    vehicle: true,
-    trade: true,
-    taxes: true,
-    roll: true,
-  });
+  const [accordions, setAccordions] = useState(allOpen);
+  const [fieldErrors, setFieldErrors] = useState({});
   const targetInputRef = useRef(null);
-  const itemCounter = useRef(1);
+  const reportError = useCallback((id, error) => setFieldErrors(current => {
+    if ((current[id] ?? null) === error) return current;
+    const next = { ...current };
+    if (error) next[id] = error; else delete next[id];
+    return next;
+  }), []);
+  const calculation = useMemo(() => {
+    try { return { result: calculateDeal(dealInput), error: null }; }
+    catch { return { result: calculateDeal(createDeskState().deal), error: 'These figures exceed the supported calculation range. Reduce the amounts before continuing.' }; }
+  }, [dealInput]);
+  const result = calculation.result;
+  const hasInputErrors = Object.keys(fieldErrors).length > 0 || Boolean(calculation.error);
+  const hasDeal = hasDealEdits(state) || hasInputErrors;
+  const canCompare = getProposalStatus({ dealInput, result, hasInputErrors }).canExport;
 
-  const result = useMemo(() => calculateDeal(dealInput), [dealInput]);
+  useEffect(() => {
+    if (!hasDeal) return;
+    const warnBeforeLeaving = event => { event.preventDefault(); event.returnValue = ''; };
+    window.addEventListener('beforeunload', warnBeforeLeaving);
+    return () => window.removeEventListener('beforeunload', warnBeforeLeaving);
+  }, [hasDeal]);
 
-  const updateField = (field, value) => {
-    if (field === "dealType" && value === "cash") {
-      setTargetType("outTheDoor");
-    }
-    if (field === "apr") {
-      setGridRates((current) => ({ ...current, [dealInput.termMonths]: value }));
-    }
-    setDealInput((current) => {
-      const next = { ...current, [field]: value };
-      if (field === "termMonths") next.apr = gridRates[value] ?? current.apr;
-      // Cash down only applies to financed deals — clear it so it can't
-      // silently reapply if the dealer switches back to Finance later.
-      if (field === "dealType" && value === "cash") next.cashDown = "";
-      return next;
-    });
-  };
-
-  const updateItem = (index, patch) => {
-    setDealInput((current) => ({
-      ...current,
-      optionalItems: current.optionalItems.map((item, itemIndex) =>
-        itemIndex === index ? { ...item, ...patch } : item,
-      ),
-    }));
-  };
-
-  const addItem = (preset = {}) => {
-    const id = `add-on-${itemCounter.current}`;
-    itemCounter.current += 1;
-    setDealInput((current) => ({
-      ...current,
-      optionalItems: [
-        ...current.optionalItems,
-        {
-          id,
-          name: preset.name ?? "",
-          amount: preset.amount ?? "",
-          taxable: preset.taxable ?? false,
-        },
-      ],
-    }));
-  };
-
-  const removeItem = (index) => {
-    setDealInput((current) => ({
-      ...current,
-      optionalItems: current.optionalItems.filter((_, itemIndex) => itemIndex !== index),
-    }));
-  };
-
-  // One-step undo for target-solver suggestions: capture the deal (and the
-  // rate grid, which a suggestion can also mutate) exactly as it was right
-  // before a suggestion is applied, so "roll to a target" is always reversible.
-  const captureUndo = (label) => setLastRoll({ dealInput, gridRates, label });
-
-  const applyItemPatch = ({ index, amount }, label) => {
-    captureUndo(label);
-    updateItem(index, { amount });
-  };
-
-  const applyPatch = (patch, label) => {
-    captureUndo(label);
-    setDealInput((current) => ({ ...current, ...patch }));
-    if (patch.termMonths && patch.apr !== undefined) {
-      setGridRates((current) => ({ ...current, [patch.termMonths]: patch.apr }));
-    } else if (patch.apr !== undefined) {
-      setGridRates((current) => ({ ...current, [dealInput.termMonths]: patch.apr }));
-    }
-  };
-
-  const undoLastRoll = () => {
-    if (!lastRoll) return;
-    setDealInput(lastRoll.dealInput);
-    setGridRates(lastRoll.gridRates);
-    setLastRoll(null);
-  };
-
-  const resetDeal = () => {
-    if (!window.confirm("Reset this deal? All figures, trade, and add-ons will be cleared.")) return;
-    setDealInput(freshDeal());
-    setGridRates({ ...INITIAL_RATES });
-    setGridDownPayments([...INITIAL_DOWN_PAYMENTS]);
-    setTargetType("payment");
-    setTargetValues({ payment: "", outTheDoor: "", amountFinanced: "" });
-    setMobileGridOpen(false);
-    setSolverExpanded(false);
-    setAccordions({ vehicle: true, trade: true, taxes: true, roll: true });
-    setLastRoll(null);
-    setResetCount((current) => current + 1);
-    itemCounter.current = 1;
-  };
-
-  const setTargetValue = (type, value) => {
-    setTargetValues((current) => ({ ...current, [type]: value }));
-  };
-
-  const activatePaymentTarget = (value) => {
-    setTargetType("payment");
-    setTargetValue("payment", value);
+  const focusFirstError = () => {
+    setAccordions(allOpen());
+    const errorId = Object.keys(fieldErrors)[0];
+    const field = document.getElementById(errorId);
+    if (isMobile()) dispatch({ type: 'grid-visibility', open: Boolean(field?.closest('#payment-grid')) });
     requestAnimationFrame(() => {
-      targetInputRef.current?.scrollIntoView({ behavior: "smooth", block: "center" });
-      targetInputRef.current?.focus();
-      targetInputRef.current?.select?.();
+      const destination = document.getElementById(errorId);
+      destination?.focus();
+      destination?.scrollIntoView({ block: 'center' });
     });
   };
-
-  const paymentTargetProps = {
-    paymentTarget: targetValues.payment,
-    onPaymentTargetChange: (value) => setTargetValue("payment", value),
-    onActivatePaymentTarget: activatePaymentTarget,
-    resetSignal: resetCount,
+  const updateField = (field, value) => {
+    if (field === 'dealType' && value === 'cash') setTargetType('outTheDoor');
+    dispatch({ type: 'field', field, value });
   };
-
-  const targetProps = {
-    targetType,
-    targetValues,
-    onTargetTypeChange: setTargetType,
-    onTargetValueChange: setTargetValue,
-    gridRates,
-    expanded: solverExpanded,
-    onExpandedChange: setSolverExpanded,
-    onApplyPatch: applyPatch,
-    onApplyItemPatch: applyItemPatch,
-    onAddRoomItem: (amount, label) => {
-      captureUndo(label);
-      addItem({ amount });
-    },
-    lastRoll,
-    onUndoRoll: undoLastRoll,
-    targetInputRef,
+  const changeView = next => {
+    if (hasInputErrors) { focusFirstError(); return; }
+    dispatch({ type: 'view', view: next });
+    focusDestination(next === 'customer' ? 'customer-heading' : 'worksheet-heading');
   };
-
-  const applyGridScenario = ({ termMonths, apr, cashDown }) => {
-    setDealInput((current) => ({ ...current, termMonths, apr, cashDown }));
-    setGridRates((current) => ({ ...current, [termMonths]: apr }));
-    if (window.matchMedia("(max-width: 760px)").matches) {
-      setMobileGridOpen(false);
-      document.getElementById("calculator-top")?.scrollIntoView({ behavior: "smooth" });
-    }
-    // On desktop, stay put so the dealer sees the cell's selected highlight
-    // instead of the page jumping away right as they click it.
+  const closeGrid = () => {
+    dispatch({ type: 'grid-visibility', open: false });
+    focusDestination('worksheet-heading');
   };
-
   const scrollToGrid = () => {
-    if (window.matchMedia("(max-width: 760px)").matches) {
-      setMobileGridOpen(true);
-      return;
-    }
-    document.getElementById("payment-grid")?.scrollIntoView({ behavior: "smooth" });
+    if (hasInputErrors) { focusFirstError(); return; }
+    if (isMobile()) dispatch({ type: 'grid-visibility', open: true });
+    focusDestination('payment-grid-heading');
   };
-  const scrollToPayment = () => {
-    const mobile = window.matchMedia("(max-width: 760px)").matches;
-    document
-      .getElementById(mobile ? "payment-results-mobile" : "payment-results")
-      ?.scrollIntoView({ behavior: "smooth", block: "start" });
+  const resetDeal = () => {
+    if (hasDeal && !window.confirm('Reset this deal? All figures, trade, and products will be cleared.')) return;
+    dispatch({ type: 'reset' });
+    setTargetType('payment'); setTargetValues({ payment: '', outTheDoor: '', amountFinanced: '' });
+    setSolverExpanded(false); setAccordions(allOpen()); setFieldErrors({});
+    focusDestination('worksheet-heading');
   };
+  const activatePaymentTarget = value => {
+    setTargetType('payment');
+    setTargetValues(current => ({ ...current, payment: value }));
+    requestAnimationFrame(() => {
+      targetInputRef.current?.focus();
+      targetInputRef.current?.select();
+      targetInputRef.current?.scrollIntoView({ block: 'center' });
+    });
+  };
+  const targetProps = {
+    targetType, targetValues, gridRates, lastRoll, targetInputRef, hasInputErrors, canCompare,
+    onTargetTypeChange: setTargetType,
+    onTargetValueChange: (type, value) => setTargetValues(current => ({ ...current, [type]: value })),
+    expanded: solverExpanded, onExpandedChange: setSolverExpanded,
+    onApplyPatch: (patch, label) => dispatch({ type: 'apply', patch, label }),
+    onApplyItemPatch: ({ index, amount }, label) => dispatch({ type: 'item', index, patch: { amount }, label }),
+    onAddRoomItem: (amount, label) => {
+      dispatch({ type: 'add-item', preset: { category: 'other', name: '', amount, taxable: false, taxTreatmentConfirmed: false }, label });
+      setAccordions(current => ({ ...current, roll: true }));
+      requestAnimationFrame(() => {
+        const names = document.querySelectorAll('[aria-label^="Name for product or add-on"]');
+        names[names.length - 1]?.focus();
+        names[names.length - 1]?.scrollIntoView({ block: 'center' });
+      });
+    },
+    onUndoRoll: () => dispatch({ type: 'undo' }),
+  };
+  const summaryProps = { dealInput, result, hasInputErrors, onActivatePaymentTarget: activatePaymentTarget };
 
   return (
-    <div className={`app-frame ${mobileGridOpen ? "has-mobile-grid-open" : ""}`}>
-      <ViewToggle onReset={resetDeal} onViewChange={setView} view={view} />
-
-      <div className="calculator-shell" id="calculator-top">
-        {view === "dealer" ? (
-          <>
+    <ValidationContext.Provider value={reportError}>
+      <div className={`app-frame ${view === 'dealer' && mobileGridOpen && result.isFinanced ? 'has-mobile-grid-open' : ''}`}>
+        <a className="skip-link" href={view === 'customer' ? '#customer-heading' : '#worksheet-heading'}>Skip to calculator</a>
+        <ViewToggle onReset={resetDeal} onViewChange={changeView} view={view} />
+        {hasInputErrors ? <div className="validation-banner" role="alert">
+          <strong>Check the highlighted figures.</strong> {calculation.error || 'The estimate uses the last valid values. Correct the input before comparing or creating a proposal.'}
+          {Object.keys(fieldErrors).length ? <button type="button" onClick={focusFirstError}>Go to field</button> : null}
+        </div> : null}
+        <div className="calculator-shell" id="calculator-top" key={`desk-${resetCount}`}>
+          {view === 'dealer' ? <>
             <div className="calculator-layout">
               <div className="calculator-left">
-                <div className="page-intro">
-                  <h1>Build the deal. See the payment.</h1>
-                  <p>A fast estimate for the desk — adjust any figure and the payment updates instantly.</p>
-                </div>
-                <div className="mobile-results" id="payment-results-mobile">
-                  <ResultsPanel dealInput={dealInput} result={result} {...paymentTargetProps} />
-                </div>
+                <div className="page-intro"><h1 id="worksheet-heading" tabIndex={-1}>Deal worksheet</h1><p>Build an estimate. Compare the options.</p></div>
+                <div className="mobile-results" id="payment-results-mobile" tabIndex={-1}><ResultsPanel {...summaryProps} /></div>
                 <QuickJumpNav />
-                <DealerView
-                  accordions={accordions}
-                  addItem={addItem}
-                  dealInput={dealInput}
-                  removeItem={removeItem}
-                  result={result}
-                  targetProps={targetProps}
-                  toggleAccordion={(name) => setAccordions((current) => ({ ...current, [name]: !current[name] }))}
-                  updateField={updateField}
-                  updateItem={updateItem}
-                />
+                <div className="deal-context">
+                  <label htmlFor="vehicle-reference">Vehicle / stock reference <span>Optional</span><input id="vehicle-reference" className="text-input" type="text" maxLength={100} value={dealInput.vehicleDescription} onChange={e => updateField('vehicleDescription', e.target.value)} placeholder="e.g. 2024 Explorer · H12345" /></label>
+                  <EstimateDateField value={dealInput.dealDate} onChange={value => updateField('dealDate', value)} />
+                </div>
+                <DealerView accordions={accordions} addItem={preset => dispatch({ type: 'add-item', preset })} dealInput={dealInput}
+                  removeItem={index => dispatch({ type: 'remove-item', index })} result={result} targetProps={targetProps}
+                  toggleAccordion={name => setAccordions(current => ({ ...current, [name]: !current[name] }))}
+                  updateField={updateField} updateItem={(index, patch) => dispatch({ type: 'item', index, patch })} />
               </div>
-              <div className="desktop-results" id="payment-results">
-                <ResultsPanel dealInput={dealInput} result={result} {...paymentTargetProps} />
-              </div>
+              <div className="desktop-results" id="payment-results" tabIndex={-1}><ResultsPanel {...summaryProps} /></div>
             </div>
-
-            {result.isFinanced ? (
-              <button className="grid-jump" onClick={scrollToGrid} type="button">
-                <span>Payment grid</span>
-                <strong>Compare terms, rates, and down payments</strong>
-              </button>
-            ) : null}
-          </>
-        ) : (
-          <>
-            <div className="page-intro page-intro--customer">
-              <h1>Your deal at a glance.</h1>
-              <p>A clear estimate based on the figures selected with your salesperson.</p>
-            </div>
-            <CustomerView
-              dealInput={dealInput}
-              gridRates={gridRates}
-              paymentTargetProps={paymentTargetProps}
-              result={result}
-            />
-          </>
-        )}
+            {result.isFinanced ? <button className="grid-jump" onClick={scrollToGrid} type="button"><span>Payment grid</span><strong>Compare terms, rates, and down payments</strong></button> : null}
+          </> : <>
+            <div className="page-intro page-intro--customer"><h1 id="customer-heading" tabIndex={-1}>Your purchase estimate</h1><p>The selected vehicle, products, and payment — together in one place.</p></div>
+            <CustomerView dealInput={dealInput} gridRates={gridRates} result={result} hasInputErrors={hasInputErrors} />
+          </>}
+        </div>
+        {view === 'dealer' && result.isFinanced ? <PaymentGrid key={`grid-${resetCount}`} dealInput={dealInput} downPayments={gridDownPayments}
+          onApplyScenario={patch => { if (hasInputErrors) { focusFirstError(); return; } if (!canCompare) return; dispatch({ type: 'grid', patch }); if (isMobile()) focusDestination('payment-results-mobile'); }}
+          onMobileClose={closeGrid} onDownPaymentChange={(index, value) => dispatch({ type: 'down', index, value })}
+          onRateChange={(term, value) => dispatch({ type: 'rate', term, value })}
+          rates={gridRates} result={result} mobileOpen={mobileGridOpen} hasInputErrors={hasInputErrors} canCompare={canCompare} /> : null}
+        <footer className="app-footer">
+          <p>Estimates only. Subject to lender approval and final taxes, fees, and deal structure.</p>
+          <p>Figures stay in this browser unless you share or print. Refreshing clears the deal.</p>
+          <p>Michigan purchase estimates · v{APP_VERSION} · {BUILD_ID}</p>
+        </footer>
+        {view === 'dealer' && result.isFinanced ? <MobileNav onGrid={scrollToGrid} onPayment={() => { dispatch({ type: 'grid-visibility', open: false }); focusDestination('payment-results-mobile'); }} payment={result.monthlyPayment} /> : null}
       </div>
-
-      {view === "dealer" && result.isFinanced ? (
-        <PaymentGrid
-          dealInput={dealInput}
-          downPayments={gridDownPayments}
-          onApplyScenario={applyGridScenario}
-          onMobileClose={() => setMobileGridOpen(false)}
-          onDownPaymentChange={(index, value) =>
-            setGridDownPayments((current) => current.map((item, itemIndex) => itemIndex === index ? value : item))
-          }
-          onRateChange={(term, value) => {
-            // updateField("apr", ...) already syncs gridRates for the current
-            // term; only the other terms need a direct gridRates update.
-            if (term === dealInput.termMonths) updateField("apr", value);
-            else setGridRates((current) => ({ ...current, [term]: value }));
-          }}
-          rates={gridRates}
-          result={result}
-          mobileOpen={mobileGridOpen}
-        />
-      ) : null}
-
-      <footer className="app-footer">
-        <p>Estimates only. Actual payments may vary by lender, taxes, fees, credit approval, and final deal structure.</p>
-        <p>No customer information is stored or sent anywhere.</p>
-      </footer>
-
-      {view === "dealer" && result.isFinanced ? (
-        <MobileNav onGrid={scrollToGrid} onPayment={scrollToPayment} payment={result.monthlyPayment} />
-      ) : null}
-    </div>
+    </ValidationContext.Provider>
   );
 }
