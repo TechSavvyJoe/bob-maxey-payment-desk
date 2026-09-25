@@ -8,8 +8,8 @@
   "background_color": "#cfd6e0",
   "theme_color": "#00095b",
   "icons": [
-    { "src": "icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any maskable" },
-    { "src": "icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any maskable" },
-    { "src": "favicon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any" }
+    { "src": "payment-desk-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any maskable" },
+    { "src": "payment-desk-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any maskable" },
+    { "src": "favicon.svg?v=2", "sizes": "any", "type": "image/svg+xml", "purpose": "any" }
   ]
 }

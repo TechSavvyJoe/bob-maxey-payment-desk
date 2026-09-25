@@ -37,6 +37,10 @@ The interface keeps the established Ford-blue identity: a navy header and paymen
 
 ## Validation and references
 
+The home-screen identity is an original, hand-drawn PD monogram in white on the navy-to-blue brand palette. The icon contains no small text. `public/payment-desk-icon.svg` is its vector master; `npm run icons:generate` exports the Apple 180px and manifest 192/512px PNGs plus the rounded browser favicon. PNGs are opaque, full-bleed squares; the operating system supplies the corner mask. The mark fits the centered 40%-radius maskable safe area. New image URLs separate the identity from older cached icons; existing iPhone shortcuts may need to be removed and added again if their old artwork persists.
+
+All form inputs, selects, and textareas use at least 16px text on mobile widths and touch-only devices, including landscape. This avoids iPhone focus-triggered form zoom. The viewport retains normal user scaling and pinch-to-zoom; print sizing is independent.
+
 Use the existing browser suite for populated, invalid, mobile, keyboard, and customer/export states. Test the start → review → edit flow, section shortcut focus, and helper/error descriptions. Visually inspect desktop and mobile layouts after CSS changes; automated contrast scans do not establish full accessibility conformance.
 
 References: [W3C form instructions](https://www.w3.org/WAI/tutorials/forms/instructions/), [W3C target-size guidance](https://www.w3.org/WAI/WCAG22/Understanding/target-size-minimum.html), and [GOV.UK review-answer pattern](https://design-system.service.gov.uk/patterns/check-answers/).
