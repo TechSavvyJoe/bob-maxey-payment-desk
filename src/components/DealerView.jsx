@@ -76,16 +76,16 @@ export default function DealerView({
           <DealSection id="vehicle" className="deal-section--vehicle" title="Vehicle" icon={CarIcon}
             open={accordions.vehicle} onToggle={() => toggleAccordion("vehicle")}
             summary={dealInput.salePrice === "" ? "Enter a price" : formatWholeCurrency(dealInput.salePrice)}>
+            <FieldRow htmlFor="sale-price" label="Selling price" helper="Unknown? Use Roll to a target below.">
+              <MoneyInput ariaLabel="Selling price" id="sale-price" value={dealInput.salePrice}
+                onChange={(value) => updateField("salePrice", value)} />
+            </FieldRow>
             <div className="choice-row">
               <span>Purchase type</span>
               <SegmentedControl label="Purchase type" value={dealInput.dealType}
                 onChange={(value) => updateField("dealType", value)}
                 options={[{ label: "Finance", value: "finance" }, { label: "Cash", value: "cash" }]} />
             </div>
-            <FieldRow htmlFor="sale-price" label="Selling price" helper="Unknown? Use Roll to a target below.">
-              <MoneyInput ariaLabel="Selling price" id="sale-price" value={dealInput.salePrice}
-                onChange={(value) => updateField("salePrice", value)} />
-            </FieldRow>
           </DealSection>
           <DealSection id="trade-cash" className="deal-section--trade" title="Trade & cash" icon={TradeIcon}
             open={accordions.trade} onToggle={() => toggleAccordion("trade")} summary={result.isFinanced ? `${formatWholeCurrency(dealInput.cashDown)} down · ${equitySummary}` : equitySummary}>

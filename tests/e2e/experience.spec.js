@@ -5,7 +5,7 @@ test.beforeEach(async ({ page }) => {
   await page.goto('/');
   await expect(page.locator('#worksheet-heading')).toBeVisible();
   await page.locator('details.deal-details > summary').click();
-  await page.getByLabel('Estimate date').fill('09/24/26');
+  await page.getByLabel('Estimate date', { exact: true }).fill('09/24/26');
   await page.locator('details.deal-details > summary').click();
   await page.getByLabel('Selling price', { exact: true }).fill('30000');
   await page.getByLabel('Selling price', { exact: true }).blur();
@@ -102,6 +102,18 @@ test('add product keeps readable text on hover', async ({ page }, testInfo) => {
   await expect(button).toHaveCSS('color', 'rgb(4, 80, 180)');
   const scan = await new AxeBuilder({ page }).include('#add-product').withRules(['color-contrast']).analyze();
   expect(scan.violations).toEqual([]);
+});
+
+test('estimate calendar has accessible controls and fits the viewport', async ({ page }) => {
+  await page.locator('details.deal-details > summary').click();
+  await page.getByRole('button', { name: 'Open estimate date calendar' }).click();
+  const dialog = page.getByRole('dialog', { name: 'Choose estimate date' });
+  await expect(dialog).toBeVisible();
+  const bounds = await dialog.boundingBox();
+  expect(bounds.x).toBeGreaterThanOrEqual(0);
+  expect(bounds.x + bounds.width).toBeLessThanOrEqual(page.viewportSize().width);
+  const scan = await new AxeBuilder({ page }).withTags(['wcag2a', 'wcag2aa', 'wcag21aa', 'wcag22aa']).analyze();
+  expect(scan.violations.map(v => ({ id: v.id, nodes: v.nodes.map(n => n.failureSummary) }))).toEqual([]);
 });
 
 test('automated accessibility scan covers dealer, products, grid, and customer', async ({ page }) => {

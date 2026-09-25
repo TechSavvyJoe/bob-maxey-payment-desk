@@ -68,7 +68,7 @@ export default function CustomerView({ dealInput, result, gridRates, hasInputErr
           <h2>{snapshot.title}</h2>
           {snapshot.vehicleReference ? <p className="proposal-vehicle">Vehicle / stock: {snapshot.vehicleReference}</p> : null}
           <p className="proposal-meta">Created {snapshot.createdLabel} Eastern time</p>
-          <p className="proposal-meta">Reference {snapshot.reference} · App {snapshot.version}</p>
+          <p className="proposal-meta">Reference {snapshot.reference}</p>
         </header>
         <div className="customer-actions">
           {onEditDeal ? <button className="edit-deal-button" onClick={onEditDeal} type="button"><EditIcon size={18} />Edit deal</button> : null}
@@ -95,13 +95,13 @@ export default function CustomerView({ dealInput, result, gridRates, hasInputErr
             <textarea onFocus={(event) => event.target.select()} readOnly rows={12} value={summaryText()} />
           </label>
         ) : null}
-        {snapshot.groups.map((section) => (
+        <div className="proposal-ledgers">{snapshot.groups.map((section) => (
           <section className="customer-ledger" key={section.id}>
             <h2>{section.title}</h2>
             {section.rows.map((item) => <LedgerRow item={item} key={item.id} />)}
             <LedgerRow item={section.total} total />
           </section>
-        ))}
+        ))}</div>
         {snapshot.summary.isFinanced ? (
           <section className="customer-options">
             <div className="customer-options__heading">
@@ -127,7 +127,7 @@ export default function CustomerView({ dealInput, result, gridRates, hasInputErr
           <h2>Estimate assumptions</h2>
           <ul>{snapshot.assumptions.map((assumption) => <li key={assumption}>{assumption}</li>)}</ul>
           <p><strong>{snapshot.qualification}</strong></p>
-          <p className="proposal-meta">{snapshot.dealership} · {snapshot.reference}</p>
+          <p className="proposal-meta">{snapshot.dealership} · {snapshot.reference} · App {snapshot.version}</p>
         </footer>
       </main>
       <ResultsPanel customer dealInput={dealInput} result={result} hasInputErrors={hasInputErrors} />

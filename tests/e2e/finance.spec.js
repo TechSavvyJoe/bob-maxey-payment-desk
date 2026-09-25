@@ -156,6 +156,31 @@ test('an invalid date keeps the last valid deal and prevents customer presentati
   await expect(page.getByRole('button', { name: 'Copy summary', exact: true })).toBeEnabled();
 });
 
+test('calendar supports keyboard selection, month navigation, and invalid-date recovery', async ({ page }) => {
+  await page.locator('details.deal-details > summary').click();
+  const date = page.getByRole('textbox', { name: 'Estimate date', exact: true });
+  await date.fill('02/30/26');
+  const open = page.getByRole('button', { name: 'Open estimate date calendar' });
+  await open.click();
+  const dialog = page.getByRole('dialog', { name: 'Choose estimate date' });
+  await expect(dialog).toBeVisible();
+  await expect(dialog.getByRole('button', { name: 'Thursday, September 24, 2026', exact: true })).toBeFocused();
+  await page.keyboard.press('ArrowRight');
+  await page.keyboard.press('Enter');
+  await expect(date).toHaveValue('09/25/26');
+  await expect(date).not.toHaveAttribute('aria-invalid', 'true');
+  await expect(open).toBeFocused();
+  await open.click();
+  await dialog.getByRole('button', { name: 'Next month' }).click();
+  await dialog.getByRole('button', { name: 'Thursday, October 1, 2026', exact: true }).click();
+  await expect(date).toHaveValue('10/01/26');
+  await open.click();
+  await page.keyboard.press('Escape');
+  await expect(dialog).not.toBeVisible();
+  await expect(open).toBeFocused();
+  await expect(date).toHaveValue('10/01/26');
+});
+
 test('letters in a price never become a different number or an exportable proposal', async ({ page }) => {
   await enterVehicle(page);
   const price = page.getByRole('textbox', { name: 'Selling price', exact: true });
