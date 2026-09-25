@@ -1,0 +1,42 @@
+# Payment Desk interface
+
+The interface keeps the established Ford-blue identity: a navy header and payment summary, raised white cards, bold labels, and clearly editable figures. Refinements should improve this direction rather than replace it with a flat worksheet.
+
+## Hierarchy and layout
+
+- The selling price starts a deal. Purchase type belongs beside it in Vehicle.
+- Trade and Financing share the left desktop column. Taxes and Products share the right column. Financing stays visible while products are added.
+- The payment is the primary result; amount financed, out-the-door total, and due at signing remain visible together.
+- Compare payments and Set payment target are adjustment paths. Review customer estimate is the primary next action. Edit deal returns to the existing figures.
+- The compact mobile summary keeps all key totals visible while leaving the first input within the opening screen at 390 × 844. Existing sticky shortcuts remain available.
+- Target adjustments use separate bordered cards on a tinted grid. The title, adjustment amount, and Apply action share a compact header; the resulting payment and three financial totals sit below. Keep qualification notes visible and omit repeated result sentences. Desktop compares cards side by side; mobile stacks them.
+
+## Shared visual rules
+
+| Element | Treatment |
+| --- | --- |
+| Brand | Navy `#00095b`; interactive blue `#066fef` |
+| Canvas | Cool gray `#dce3ed`, white cards, soft elevation |
+| Section identity | Navy Vehicle, blue Trade, teal-blue Taxes, muted blue Products; named headings and icons accompany every color |
+| Typography | Locally bundled IBM Plex Sans, dark readable labels, tabular financial figures |
+| Controls | At least 44px high for primary interactive targets; visible borders and keyboard focus |
+| Success | Green only when a target is met and no product setup remains |
+| Needs action | Blue for product setup, neutral for a remaining target gap, red for actual input errors |
+| Dates | MM/DD/YY for user-facing dates; ISO dates retained internally for rule selection and identifiers |
+
+## Component states and behavior
+
+- **Empty estimate:** explanatory text and Enter selling price replace a misleading zero payment and initial error alert. The payment grid provides the same starting action.
+- **Invalid input:** retain the user's draft and last valid calculation; show the error and focus its field before moving to a customer estimate.
+- **Section disclosure:** the header is a button with expanded state. Hidden inputs leave the keyboard order. A section shortcut focuses the header so Enter or Space can reopen it.
+- **Field instructions:** helper text and validation messages both remain associated with the input.
+- **Estimate review:** navigates to the complete customer ledger and focuses its heading. Export restrictions continue to reflect whether the estimate is complete.
+- **Product choices:** Service Contract, Gap, and Other retain the same amounts and explicit tax-treatment rules.
+- **Motion:** focus navigation respects reduced-motion preferences. Color is never the only status indication.
+- **Print:** decorative screen styles do not override the existing compact, monochrome customer document.
+
+## Validation and references
+
+Use the existing browser suite for populated, invalid, mobile, keyboard, and customer/export states. Test the start → review → edit flow, section shortcut focus, and helper/error descriptions. Visually inspect desktop and mobile layouts after CSS changes; automated contrast scans do not establish full accessibility conformance.
+
+References: [W3C form instructions](https://www.w3.org/WAI/tutorials/forms/instructions/), [W3C target-size guidance](https://www.w3.org/WAI/WCAG22/Understanding/target-size-minimum.html), and [GOV.UK review-answer pattern](https://design-system.service.gov.uk/patterns/check-answers/).

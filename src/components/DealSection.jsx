@@ -13,24 +13,27 @@ export default function DealSection({
   const contentId = `${id}-content`;
 
   return (
-    <section className={`deal-section ${className}`} id={`${id}-section`}>
-      <button
+    <section aria-labelledby={`${id}-heading`} className={`deal-section ${className}`} id={`${id}-section`}>
+      <h2 className="deal-section__heading">
+        <button
         aria-controls={contentId}
         aria-expanded={open}
         className="deal-section__header"
+        id={`${id}-heading`}
         onClick={onToggle}
         type="button"
       >
-        {SectionIcon ? <SectionIcon className="deal-section__icon" size={25} /> : null}
+        {SectionIcon ? <SectionIcon className="deal-section__icon" size={20} /> : null}
         <span className="deal-section__title-wrap">
-          <span aria-level={3} className="deal-section__title" role="heading">
+          <span className="deal-section__title">
             {title}
           </span>
           {summary ? <span className="deal-section__summary">{summary}</span> : null}
         </span>
         <ChevronIcon className="deal-section__chevron" direction={open ? "up" : "down"} size={22} />
-      </button>
-      <div className={`deal-section__content ${open ? "is-open" : "is-collapsed"}`} id={contentId}>
+        </button>
+      </h2>
+      <div className="deal-section__content" hidden={!open} id={contentId}>
         {children}
       </div>
     </section>

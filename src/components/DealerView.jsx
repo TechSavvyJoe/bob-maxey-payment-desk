@@ -1,287 +1,218 @@
+import { useEffect } from "react";
 import { CALCULATION_DEFAULTS, RATE_GRID_DEFAULTS } from "../lib/calculations.js";
 import { formatCurrency, formatWholeCurrency } from "../lib/formatters.js";
 import DealSection from "./DealSection.jsx";
 import { FieldRow, MoneyInput, PercentInput, SegmentedControl } from "./Fields.jsx";
-import {
-  AddCircleIcon,
-  CarIcon,
-  PercentIcon,
-  ReceiptIcon,
-  TradeIcon,
-  TrashIcon,
-} from "./Icons.jsx";
+import { AddCircleIcon, CarIcon, PercentIcon, PlusIcon, ReceiptIcon, TradeIcon, TrashIcon } from "./Icons.jsx";
 import TargetSolver from "./TargetSolver.jsx";
+import TradeTaxBreakdown from "./TradeTaxBreakdown.jsx";
+import { useFieldValidation } from "./ValidationContext.jsx";
+
+const categoryFor = (item) => item.category || (
+  item.name === "Service Contract" ? "service-contract" : item.name === "Gap" ? "gap" : "other"
+);
+
+function OtherTaxField({ item, index, updateItem }) {
+  const reportError = useFieldValidation();
+  const inputId = `${item.id}-tax-treatment`;
+  const error = Number(item.amount) > 0 && item.taxTreatmentConfirmed !== true ? "Choose the product's tax treatment." : null;
+  useEffect(() => {
+    reportError?.(inputId, error);
+    return () => reportError?.(inputId, null);
+  }, [inputId, error, reportError]);
+  return (
+    <label className="product-tax-label">
+      <span>Tax treatment</span>
+      <select className="product-tax-select" id={inputId}
+        aria-label={`Tax treatment for ${item.name || `product or add-on ${index + 1}`}`}
+        aria-invalid={error ? true : undefined} aria-describedby={error ? `${inputId}-error` : undefined}
+        value={item.taxTreatmentConfirmed === true ? item.taxable ? "taxable" : "not-taxable" : ""}
+        onChange={(event) => updateItem(index, { taxable: event.target.value === "taxable", taxTreatmentConfirmed: event.target.value !== "" })}>
+        <option value="">Choose tax treatment</option>
+        <option value="taxable">Taxable</option>
+        <option value="not-taxable">Not taxable</option>
+      </select>
+      {error ? <span className="field-error" id={`${inputId}-error`}>{error}</span> : null}
+    </label>
+  );
+}
 
 export default function DealerView({
-  dealInput,
-  result,
-  updateField,
-  updateItem,
-  addItem,
-  removeItem,
-  accordions,
-  toggleAccordion,
-  targetProps,
+  dealInput, result, updateField, updateItem, addItem, removeItem,
+  accordions, toggleAccordion, targetProps,
 }) {
-  const equitySummary =
-    result.tradeEquity < 0
-      ? `${formatWholeCurrency(Math.abs(result.tradeEquity))} negative equity`
-      : result.tradeEquity > 0
-        ? `${formatWholeCurrency(result.tradeEquity)} positive equity`
-        : "No trade equity";
+  const equitySummary = result.tradeEquity < 0
+    ? `${formatWholeCurrency(Math.abs(result.tradeEquity))} negative equity`
+    : result.tradeEquity > 0 ? `${formatWholeCurrency(result.tradeEquity)} trade equity` : "No trade equity";
   const taxesAndFees = result.salesTax + result.fees.totalFees;
+  const changeCategory = (index, item, category) => {
+    if (category === categoryFor(item)) return;
+    updateItem(index, {
+      category,
+      name: category === "service-contract" ? "Service Contract" : category === "gap" ? "Gap" : "",
+      taxable: false,
+      taxTreatmentConfirmed: category !== "other",
+    });
+  };
+  const addProduct = () => {
+    addItem();
+    requestAnimationFrame(() => {
+      const controls = document.querySelectorAll(".product-category");
+      controls[controls.length - 1]?.focus();
+    });
+  };
+  const removeProduct = (index) => {
+    removeItem(index);
+    requestAnimationFrame(() => {
+      const controls = document.querySelectorAll(".product-category");
+      (controls[Math.min(index, controls.length - 1)] || document.getElementById("add-product"))?.focus();
+    });
+  };
 
   return (
-    <main className="dealer-workspace">
-      <div className="deal-grid">
-        <div className="deal-column">
-          <DealSection
-            className="deal-section--vehicle"
-            icon={CarIcon}
-            id="vehicle"
-            onToggle={() => toggleAccordion("vehicle")}
-            open={accordions.vehicle}
-            summary={formatWholeCurrency(dealInput.salePrice)}
-            title="Vehicle"
-          >
-            <FieldRow htmlFor="sale-price" label="Selling price">
-              <MoneyInput
-                ariaLabel="Selling price"
-                id="sale-price"
-                onChange={(value) => updateField("salePrice", value)}
-                value={dealInput.salePrice}
-              />
+    <main className="dealer-workspace" aria-label="Deal worksheet">
+      <div className="worksheet-panel">
+        <div className="deal-grid">
+          <div className="deal-column">
+          <DealSection id="vehicle" className="deal-section--vehicle" title="Vehicle" icon={CarIcon}
+            open={accordions.vehicle} onToggle={() => toggleAccordion("vehicle")}
+            summary={dealInput.salePrice === "" ? "Enter a price" : formatWholeCurrency(dealInput.salePrice)}>
+            <FieldRow htmlFor="sale-price" label="Selling price" helper="Unknown? Use Roll to a target below.">
+              <MoneyInput ariaLabel="Selling price" id="sale-price" value={dealInput.salePrice}
+                onChange={(value) => updateField("salePrice", value)} />
             </FieldRow>
+            <div className="choice-row">
+              <span>Purchase type</span>
+              <SegmentedControl label="Purchase type" value={dealInput.dealType}
+                onChange={(value) => updateField("dealType", value)}
+                options={[{ label: "Finance", value: "finance" }, { label: "Cash", value: "cash" }]} />
+            </div>
           </DealSection>
-
-          <DealSection
-            className="deal-section--trade"
-            icon={TradeIcon}
-            id="trade-cash"
-            onToggle={() => toggleAccordion("trade")}
-            open={accordions.trade}
-            summary={result.isFinanced ? `${formatWholeCurrency(dealInput.cashDown)} down · ${equitySummary}` : equitySummary}
-            title="Trade & cash"
-          >
+          <DealSection id="trade-cash" className="deal-section--trade" title="Trade & cash" icon={TradeIcon}
+            open={accordions.trade} onToggle={() => toggleAccordion("trade")} summary={result.isFinanced ? `${formatWholeCurrency(dealInput.cashDown)} down · ${equitySummary}` : equitySummary}>
             {result.isFinanced ? (
               <FieldRow htmlFor="cash-down" label="Cash down">
-                <MoneyInput
-                  ariaLabel="Cash down"
-                  id="cash-down"
-                  onChange={(value) => updateField("cashDown", value)}
-                  value={dealInput.cashDown}
-                />
+                <MoneyInput ariaLabel="Cash down" id="cash-down" value={dealInput.cashDown}
+                  onChange={(value) => updateField("cashDown", value)} />
               </FieldRow>
             ) : null}
             <FieldRow htmlFor="trade-allowance" label="Trade allowance">
-              <MoneyInput
-                ariaLabel="Trade allowance"
-                id="trade-allowance"
-                onChange={(value) => updateField("tradeAllowance", value)}
-                value={dealInput.tradeAllowance}
-              />
+              <MoneyInput ariaLabel="Trade allowance" id="trade-allowance" value={dealInput.tradeAllowance}
+                onChange={(value) => updateField("tradeAllowance", value)} />
             </FieldRow>
             <FieldRow htmlFor="trade-payoff" label="Trade payoff">
-              <MoneyInput
-                ariaLabel="Trade payoff"
-                id="trade-payoff"
-                onChange={(value) => updateField("tradePayoff", value)}
-                value={dealInput.tradePayoff}
-              />
+              <MoneyInput ariaLabel="Trade payoff" id="trade-payoff" value={dealInput.tradePayoff}
+                onChange={(value) => updateField("tradePayoff", value)} />
             </FieldRow>
             <div className={`equity-line ${result.tradeEquity < 0 ? "is-negative" : "is-positive"}`}>
-              <strong>{result.tradeEquity < 0 ? "Negative equity" : "Trade equity"}</strong>
-              <strong>{formatWholeCurrency(Math.abs(result.tradeEquity))}</strong>
+              <span>{result.tradeEquity < 0 ? "Negative equity" : "Trade equity"}</span>
+              <strong>{formatCurrency(Math.abs(result.tradeEquity))}</strong>
             </div>
-            {result.negativeEquity > 0 && dealInput.dealType === "finance" ? (
+            {result.negativeEquity > 0 && result.isFinanced ? (
               <label className="equity-roll-control">
-                <input
-                  checked={dealInput.rollNegativeEquity}
-                  onChange={(event) => updateField("rollNegativeEquity", event.target.checked)}
-                  type="checkbox"
-                />
-                <span>Include negative equity in amount financed</span>
+                <input checked={dealInput.rollNegativeEquity} type="checkbox"
+                  onChange={(event) => updateField("rollNegativeEquity", event.target.checked)} />
+                <span>Include negative equity in financing</span>
               </label>
             ) : null}
           </DealSection>
-        </div>
-
-        <div className="deal-column">
-          <DealSection
-            className="deal-section--taxes"
-            icon={ReceiptIcon}
-            id="taxes-fees"
-            onToggle={() => toggleAccordion("taxes")}
-            open={accordions.taxes}
-            summary={`${formatWholeCurrency(taxesAndFees)} total`}
-            title="Taxes & state fees"
-          >
-            <FieldRow htmlFor="sales-tax" label="Sales tax">
-              <PercentInput
-                ariaLabel="Sales tax rate"
-                disabled
-                id="sales-tax"
-                value={CALCULATION_DEFAULTS.salesTaxRate * 100}
-              />
-            </FieldRow>
-            <FieldRow helper="Taxable · every deal" label="Doc fee">
-              <MoneyInput ariaLabel="Document fee" disabled value={result.fees.documentFee} />
-            </FieldRow>
-            <FieldRow helper="Taxable · every deal" label="CRV">
-              <MoneyInput ariaLabel="CRV fee" disabled value={result.fees.crvFee} />
-            </FieldRow>
+          {result.isFinanced ? (
+            <section className="financing-panel" aria-labelledby="financing-heading">
+              <div className="financing-panel__heading"><PercentIcon size={22} /><h2 id="financing-heading">Financing</h2></div>
+              <div className="financing-panel__body">
+                <FieldRow htmlFor="apr" label="APR" helper="Assumed annual percentage rate">
+                  <PercentInput ariaLabel="Annual percentage rate" id="apr" value={dealInput.apr}
+                    onChange={(value) => updateField("apr", value)} />
+                </FieldRow>
+                <div className="term-control">
+                  <span>Term <small>(months)</small></span>
+                  <div aria-label="Loan term" className="term-buttons" role="group">
+                    {RATE_GRID_DEFAULTS.termMonths.map((term) => (
+                      <button aria-pressed={dealInput.termMonths === term}
+                        className={dealInput.termMonths === term ? "is-selected" : ""} key={term}
+                        onClick={() => updateField("termMonths", term)} type="button">{term}</button>
+                    ))}
+                  </div>
+                </div>
+              </div>
+            </section>
+          ) : null}
+          </div>
+          <div className="deal-column">
+          <DealSection id="taxes-fees" className="deal-section--taxes" title="Taxes & registration" icon={ReceiptIcon}
+            open={accordions.taxes} onToggle={() => toggleAccordion("taxes")}
+            summary={`${formatWholeCurrency(taxesAndFees)} total`}>
+            <TradeTaxBreakdown result={result} />
+            <dl className="fixed-fees">
+              <div><dt>Michigan sales tax <small>{CALCULATION_DEFAULTS.salesTaxRate * 100}%</small></dt><dd>{formatCurrency(result.salesTax)}</dd></div>
+              <div><dt>Document fee <small>Taxable</small></dt><dd>{formatCurrency(result.fees.documentFee)}</dd></div>
+              <div><dt>CRV fee <small>Taxable · store policy</small></dt><dd>{formatCurrency(result.fees.crvFee)}</dd></div>
+            </dl>
             <div className="choice-row">
-              <span>Purchase</span>
-              <SegmentedControl
-                label="Purchase type"
-                onChange={(value) => updateField("dealType", value)}
-                options={[
-                  { label: "Finance", value: "finance" },
-                  { label: "Cash", value: "cash" },
-                ]}
-                value={dealInput.dealType}
-              />
-            </div>
-            <div className="choice-row">
-              <span>Plate</span>
-              <SegmentedControl
-                label="Plate type"
+              <span>Registration</span>
+              <SegmentedControl label="Plate type" value={dealInput.plateMode}
                 onChange={(value) => updateField("plateMode", value)}
-                options={[
-                  { label: "Transfer", value: "transfer" },
-                  { label: "New plate", value: "new" },
-                ]}
-                value={dealInput.plateMode}
-              />
+                options={[{ label: "Transfer", value: "transfer" }, { label: "New plate", value: "new" }]} />
             </div>
             {dealInput.plateMode === "new" ? (
-              <FieldRow
-                helper={`Title ${formatCurrency(result.isFinanced ? CALCULATION_DEFAULTS.financeTitleFee : CALCULATION_DEFAULTS.cashTitleFee)} added automatically`}
-                htmlFor="new-plate-amount"
-                label="New plate amount"
-              >
-                <MoneyInput
-                  ariaLabel="New plate amount"
-                  id="new-plate-amount"
-                  onChange={(value) => updateField("newPlateAmount", value)}
-                  value={dealInput.newPlateAmount}
-                />
+              <FieldRow htmlFor="new-plate-amount" label="New plate amount"
+                helper={`Enter registration estimate. Title ${formatCurrency(result.fees.titleFee)} added separately.`}>
+                <MoneyInput ariaLabel="New plate amount" id="new-plate-amount" required value={dealInput.newPlateAmount}
+                  onChange={(value) => updateField("newPlateAmount", value)} />
               </FieldRow>
             ) : (
-              <div className="state-fee-line">
-                Transfer {formatCurrency(result.fees.plateTransferFee)}
-                <span>+</span>
-                State fee {formatCurrency(result.fees.additionalTransferFee)}
-                <span>+</span>
-                Title {formatCurrency(result.fees.titleFee)}
-              </div>
+              <p className="state-fee-line">Transfer {formatCurrency(result.fees.plateTransferFee)}
+                {" · "}State fee {formatCurrency(result.fees.additionalTransferFee)}
+                {" · "}Title {formatCurrency(result.fees.titleFee)}</p>
             )}
           </DealSection>
-
-          <DealSection
-            className="deal-section--products"
-            icon={AddCircleIcon}
-            id="products-addons"
-            onToggle={() => toggleAccordion("roll")}
-            open={accordions.roll}
-            summary={dealInput.optionalItems.length ? formatWholeCurrency(result.optionalItemsTotal) : "None added"}
-            title="Products & add-ons"
-          >
-            {dealInput.optionalItems.length ? (
-              <>
-                <div className="option-list__header" aria-hidden="true">
-                  <span>Item</span>
-                  <span>Amount</span>
-                  <span>Tax</span>
-                  <span />
-                </div>
-                <div className="option-list">
-                  {dealInput.optionalItems.map((item, index) => (
+          <DealSection id="products-addons" className="deal-section--products" title="Products & add-ons" icon={AddCircleIcon}
+            open={accordions.roll} onToggle={() => toggleAccordion("roll")}
+            summary={dealInput.optionalItems.length ? formatWholeCurrency(result.optionalItemsTotal) : "None selected"}>
+            {!dealInput.optionalItems.length ? <div className="products-empty"><strong>Add only what belongs in this deal.</strong><p>Choose Service Contract, Gap, or Other, then enter the agreed amount.</p></div> : null}
+            <div className="option-list">
+              {dealInput.optionalItems.map((item, index) => (
                 <div className="option-row" key={item.id}>
-                  <input
-                    aria-label={`Name for product or add-on ${index + 1}`}
-                    className="text-input"
-                    onChange={(event) => updateItem(index, { name: event.target.value })}
-                    placeholder="Product name"
-                    type="text"
-                    value={item.name}
-                  />
-                  <MoneyInput
-                    ariaLabel={`${item.name || `Product or add-on ${index + 1}`} amount`}
-                    compact
-                    onChange={(value) => updateItem(index, { amount: value })}
-                    value={item.amount}
-                  />
-                  <label className="tax-check">
-                    <input
-                      aria-label={`${item.name || `Product or add-on ${index + 1}`} is taxable`}
-                      checked={item.taxable}
-                      onChange={(event) => updateItem(index, { taxable: event.target.checked })}
-                      type="checkbox"
-                    />
-                    <span>Tax</span>
+                  <label className="product-select-label">
+                    <span>Product {index + 1}</span>
+                    <select className="product-category" aria-label={`Product ${index + 1} type`}
+                      value={categoryFor(item)} onChange={(event) => changeCategory(index, item, event.target.value)}>
+                      <option value="service-contract">Service Contract</option>
+                      <option value="gap">Gap</option>
+                      <option value="other">Other</option>
+                    </select>
                   </label>
-                  <button
-                    aria-label={`Remove ${item.name || `product or add-on ${index + 1}`}`}
-                    className="icon-button"
-                    onClick={() => removeItem(index)}
-                    type="button"
-                  >
-                    <TrashIcon size={20} />
-                  </button>
+                  {categoryFor(item) === "other" ? (
+                    <label className="product-name-label">
+                      <span>Product name</span>
+                      <input aria-label={`Name for product or add-on ${index + 1}`} className="text-input"
+                        value={item.name} placeholder="Describe the product" type="text" maxLength={120}
+                        onChange={(event) => updateItem(index, { name: event.target.value })} />
+                    </label>
+                  ) : null}
+                  <label className="product-amount-label">
+                    <span>Amount</span>
+                    <MoneyInput ariaLabel={`${item.name || `Product ${index + 1}`} amount`} compact value={item.amount}
+                      onChange={(value) => updateItem(index, { amount: value })} />
+                  </label>
+                  {categoryFor(item) === "other" ? <OtherTaxField item={item} index={index} updateItem={updateItem} /> : <label className="tax-check">
+                    <input aria-label={`${item.name || `Product ${index + 1}`} is taxable`} type="checkbox"
+                      checked={item.taxable} onChange={(event) => updateItem(index, { taxable: event.target.checked, taxTreatmentConfirmed: true })} />
+                    <span>Taxable</span>
+                  </label>}
+                  <button aria-label={`Remove ${item.name || `product ${index + 1}`}`} className="icon-button product-remove"
+                    onClick={() => removeProduct(index)} type="button"><TrashIcon size={18} /><span>Remove</span></button>
                 </div>
-                  ))}
-                </div>
-              </>
-            ) : null}
-            <button className="add-item-button" onClick={() => addItem()} type="button">
-              <AddCircleIcon size={20} />
-              Add product or add-on
-            </button>
-            {dealInput.optionalItems.length ? (
-              <div className="subtotal-line">
-                <strong>Add-ons</strong>
-                <strong>{formatWholeCurrency(result.optionalItemsTotal)}</strong>
-              </div>
-            ) : null}
-            <p className="section-note">Add products only when they apply to this deal.</p>
-          </DealSection>
-        </div>
-      </div>
-
-      {result.isFinanced ? (
-        <section className="financing-panel">
-          <div className="financing-panel__heading">
-            <PercentIcon size={24} />
-            <h2>Financing</h2>
-          </div>
-          <FieldRow htmlFor="apr" label="APR">
-            <PercentInput
-              ariaLabel="Annual percentage rate"
-              id="apr"
-              onChange={(value) => updateField("apr", value)}
-              value={dealInput.apr}
-            />
-          </FieldRow>
-          <div className="term-control">
-            <span>Term (months)</span>
-            <div aria-label="Loan term" className="term-buttons" role="group">
-              {RATE_GRID_DEFAULTS.termMonths.map((term) => (
-                <button
-                  aria-pressed={dealInput.termMonths === term}
-                  className={dealInput.termMonths === term ? "is-selected" : ""}
-                  key={term}
-                  onClick={() => updateField("termMonths", term)}
-                  type="button"
-                >
-                  {term}
-                </button>
               ))}
             </div>
+            <button id="add-product" className="add-item-button" onClick={addProduct} type="button">
+              <PlusIcon size={18} />Add product
+            </button>
+            <p className="section-note">Optional products only. Verify price, eligibility, and tax treatment.</p>
+          </DealSection>
           </div>
-        </section>
-      ) : null}
-
+        </div>
+      </div>
       <TargetSolver dealInput={dealInput} result={result} {...targetProps} />
     </main>
   );

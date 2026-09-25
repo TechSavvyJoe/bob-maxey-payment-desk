@@ -1,14 +1,19 @@
+import { getMichiganPolicy, POLICY_CONFIG } from './policy.js';
+
 const CENTS_PER_DOLLAR = 100;
 
+// Technical input boundaries, not lender approvals or market-rate guidance.
+export const CALCULATION_LIMITS = Object.freeze({
+  maxAmount: 1_000_000,
+  maxApr: 50,
+  maxTermMonths: 120,
+  maxOptionalItems: 50,
+});
+
 export const CALCULATION_DEFAULTS = Object.freeze({
-  salesTaxRate: 0.06,
+  salesTaxRate: POLICY_CONFIG.salesTaxRate,
   tradeTaxCreditCap: 12_000,
-  documentFee: 280,
-  crvFee: 34,
-  plateTransferFee: 10,
-  additionalTransferFee: 5,
-  cashTitleFee: 15,
-  financeTitleFee: 16,
+  ...POLICY_CONFIG.feeDefaults,
 });
 
 export const RATE_GRID_DEFAULTS = Object.freeze({
@@ -16,15 +21,9 @@ export const RATE_GRID_DEFAULTS = Object.freeze({
   downPayments: Object.freeze([0, 1_000, 2_000, 3_000, 5_000]),
 });
 
-const DEFAULT_CENTS = Object.freeze({
-  tradeTaxCreditCap: 1_200_000,
-  documentFee: 28_000,
-  crvFee: 3_400,
-  plateTransferFee: 1_000,
-  additionalTransferFee: 500,
-  cashTitleFee: 1_500,
-  financeTitleFee: 1_600,
-});
+const DEFAULT_CENTS = Object.freeze(Object.fromEntries(
+  Object.entries(POLICY_CONFIG.feeDefaults).map(([name, dollars]) => [name, dollars * CENTS_PER_DOLLAR]),
+));
 
 /**
  * Convert a currency value into integer cents without relying on binary
@@ -45,6 +44,7 @@ export function toCents(value) {
   } else {
     throw new TypeError('Currency values must be numbers or numeric strings.');
   }
+  if (source.length > 1_024) throw new RangeError('Currency input is too long.');
 
   const match = source.match(
     /^([+-]?)(?:(\d+)(?:\.(\d*))?|\.(\d+))(?:[eE]([+-]?\d+))?$/,
@@ -92,26 +92,36 @@ export function fromCents(cents) {
 function nonNegativeCents(value, name) {
   const cents = toCents(value);
   if (cents < 0) throw new RangeError(`${name} cannot be negative.`);
+  if (cents > CALCULATION_LIMITS.maxAmount * CENTS_PER_DOLLAR) {
+    throw new RangeError(`${name} cannot exceed $${CALCULATION_LIMITS.maxAmount.toLocaleString('en-US')}.`);
+  }
   return cents;
 }
 
 function finiteNumber(value, name, fallback = 0) {
   if (value === undefined || value === null || value === '') return fallback;
+  if (typeof value !== 'number' && typeof value !== 'string') {
+    throw new TypeError(`${name} must be a number or numeric string.`);
+  }
   const result = Number(value);
   if (!Number.isFinite(result)) throw new TypeError(`${name} must be a finite number.`);
   return result;
 }
 
-function normalizeApr(value) {
+export function normalizeApr(value) {
   const apr = finiteNumber(value, 'APR');
   if (apr < 0) throw new RangeError('APR cannot be negative.');
-  return apr;
+  if (apr > CALCULATION_LIMITS.maxApr) throw new RangeError(`APR cannot exceed ${CALCULATION_LIMITS.maxApr}%.`);
+  return fromCents(toCents(apr));
 }
 
 function normalizeTerm(value) {
   const termMonths = finiteNumber(value, 'Term', 60);
   if (!Number.isInteger(termMonths) || termMonths <= 0) {
     throw new RangeError('Term must be a positive whole number of months.');
+  }
+  if (termMonths > CALCULATION_LIMITS.maxTermMonths) {
+    throw new RangeError(`Term cannot exceed ${CALCULATION_LIMITS.maxTermMonths} months.`);
   }
   return termMonths;
 }
@@ -145,6 +155,9 @@ export function paymentFactor(apr, termMonths) {
  */
 export function calculatePayment({ principal, amountFinanced, apr = 0, termMonths = 60 }) {
   const principalCents = toCents(principal ?? amountFinanced ?? 0);
+  if (Math.abs(principalCents) > CALCULATION_LIMITS.maxAmount * CALCULATION_LIMITS.maxTermMonths * CENTS_PER_DOLLAR) {
+    throw new RangeError('Principal is outside the supported calculation range.');
+  }
   const normalizedApr = normalizeApr(apr);
   const normalizedTerm = normalizeTerm(termMonths);
   const factor = paymentFactor(normalizedApr, normalizedTerm);
@@ -229,6 +242,9 @@ function normalizePlateMode(value) {
 function normalizeOptionalItems(items) {
   if (items === undefined || items === null) return [];
   if (!Array.isArray(items)) throw new TypeError('optionalItems must be an array.');
+  if (items.length > CALCULATION_LIMITS.maxOptionalItems) {
+    throw new RangeError(`A deal cannot have more than ${CALCULATION_LIMITS.maxOptionalItems} optional items.`);
+  }
 
   return items.map((item, index) => {
     if (!item || typeof item !== 'object') {
@@ -237,7 +253,8 @@ function normalizeOptionalItems(items) {
     const amountCents = nonNegativeCents(item.amount ?? 0, `Optional item ${index + 1}`);
     return {
       id: item.id ?? `optional-${index + 1}`,
-      name: item.name ?? `Optional item ${index + 1}`,
+      name: String(item.name ?? `Optional item ${index + 1}`),
+      ...(item.category === undefined ? {} : { category: String(item.category) }),
       amount: fromCents(amountCents),
       amountCents,
       taxable: item.taxable === true,
@@ -259,6 +276,7 @@ export function calculateDeal(input = {}) {
   if (!input || typeof input !== 'object' || Array.isArray(input)) {
     throw new TypeError('Deal input must be an object.');
   }
+  const policy = getMichiganPolicy(input.dealDate);
 
   const salePriceCents = nonNegativeCents(
     input.salePrice ?? input.sellingPrice ?? 0,
@@ -271,8 +289,10 @@ export function calculateDeal(input = {}) {
     input.upfrontAmount ?? 0,
     'Upfront amount',
   );
+  const newPlateInput = input.newPlateAmount ?? input.newPlateFee;
+  const newPlateAmountKnown = newPlateInput !== undefined && newPlateInput !== null && String(newPlateInput).trim() !== '';
   const newPlateAmountCents = nonNegativeCents(
-    input.newPlateAmount ?? input.newPlateFee ?? 0,
+    newPlateInput ?? 0,
     'New plate amount',
   );
   const apr = normalizeApr(input.apr ?? 0);
@@ -297,7 +317,12 @@ export function calculateDeal(input = {}) {
 
   const isFinanced = dealType === 'finance';
   const hasVehicle = salePriceCents > 0;
-  const documentFeeCents = hasVehicle ? DEFAULT_CENTS.documentFee : 0;
+  // Selling price is a conservative base, not a claim about the complete
+  // statutory contract cash-price definition. Floor prevents exceeding 5%.
+  const documentFeeCents = hasVehicle
+    ? Math.min(toCents(policy.documentFeeMaximum),
+      Number(BigInt(salePriceCents) * BigInt(policy.documentFeeSalePricePercent) / 100n))
+    : 0;
   const crvFeeCents = hasVehicle ? DEFAULT_CENTS.crvFee : 0;
   const taxableFixedFeesCents = documentFeeCents + crvFeeCents;
   const plateTransferFeeCents = hasVehicle && plateMode === 'transfer' ? DEFAULT_CENTS.plateTransferFee : 0;
@@ -316,7 +341,7 @@ export function calculateDeal(input = {}) {
 
   const tradeTaxCreditCents = Math.min(
     tradeAllowanceCents,
-    DEFAULT_CENTS.tradeTaxCreditCap,
+    policy.tradeTaxCreditCap === null ? Infinity : toCents(policy.tradeTaxCreditCap),
   );
   const tradeEquityCents = tradeAllowanceCents - tradePayoffCents;
   const positiveEquityCents = Math.max(tradeEquityCents, 0);
@@ -324,7 +349,9 @@ export function calculateDeal(input = {}) {
   const taxableTotalBeforeCreditCents =
     salePriceCents + taxableFixedFeesCents + taxableOptionsCents;
   const taxBaseCents = Math.max(0, taxableTotalBeforeCreditCents - tradeTaxCreditCents);
-  const salesTaxCents = roundRatio(taxBaseCents * 600, 10_000);
+  const salesTaxCents = roundRatio(BigInt(taxBaseCents) * BigInt(policy.salesTaxBasisPoints), 10_000);
+  const tradeTaxDeductionCents = taxableTotalBeforeCreditCents - taxBaseCents;
+  const tradeTaxSavingsCents = roundRatio(BigInt(taxableTotalBeforeCreditCents) * BigInt(policy.salesTaxBasisPoints), 10_000) - salesTaxCents;
 
   const outTheDoorCents =
     salePriceCents +
@@ -360,7 +387,14 @@ export function calculateDeal(input = {}) {
     termMonths,
   });
 
-  const warnings = [];
+  const warnings = [...policy.warnings];
+  const incompleteReasons = [...policy.warnings];
+  if (!hasVehicle) incompleteReasons.push('Enter a selling price to complete this estimate.');
+  if (plateMode === 'new' && !newPlateAmountKnown) {
+    const reason = 'New plate cost has not been entered. Registration costs are excluded from this incomplete estimate.';
+    incompleteReasons.push(reason);
+    if (hasVehicle) warnings.push(reason);
+  }
   if (isFinanced && amountFinancedCents < 0) {
     warnings.push('Credits exceed the balance. Reduce cash down or trade equity.');
   }
@@ -385,9 +419,13 @@ export function calculateDeal(input = {}) {
     tradeAllowance: tradeAllowanceCents,
     tradePayoff: tradePayoffCents,
     tradeTaxCredit: tradeTaxCreditCents,
+    tradeTaxDeduction: tradeTaxDeductionCents,
+    tradeTaxSavings: tradeTaxSavingsCents,
     tradeEquity: tradeEquityCents,
     positiveEquity: positiveEquityCents,
     negativeEquity: negativeEquityCents,
+    financedNegativeEquity: isFinanced && rollNegativeEquity ? negativeEquityCents : 0,
+    upfrontNegativeEquity: isFinanced && !rollNegativeEquity ? negativeEquityCents : 0,
     cashDown: cashDownCents,
     taxableOptions: taxableOptionsCents,
     nonTaxableOptions: nonTaxableOptionsCents,
@@ -412,12 +450,17 @@ export function calculateDeal(input = {}) {
   };
 
   return {
+    dealDate: policy.dealDate,
+    policy,
+    isComplete: incompleteReasons.length === 0,
+    incompleteReasons,
+    newPlateAmountKnown,
     dealType,
     plateMode,
     isFinanced,
     rollNegativeEquity,
-    salesTaxRate: CALCULATION_DEFAULTS.salesTaxRate,
-    tradeTaxCreditCap: CALCULATION_DEFAULTS.tradeTaxCreditCap,
+    salesTaxRate: policy.salesTaxRate,
+    tradeTaxCreditCap: policy.tradeTaxCreditCap,
     salePrice: fromCents(salePriceCents),
     tradeAllowance: fromCents(tradeAllowanceCents),
     tradePayoff: fromCents(tradePayoffCents),
@@ -425,6 +468,8 @@ export function calculateDeal(input = {}) {
     tradeEquity: fromCents(tradeEquityCents),
     positiveEquity: fromCents(positiveEquityCents),
     negativeEquity: fromCents(negativeEquityCents),
+    financedNegativeEquity: fromCents(cents.financedNegativeEquity),
+    upfrontNegativeEquity: fromCents(cents.upfrontNegativeEquity),
     cashDown: fromCents(cashDownCents),
     optionalItems: optionalItems.map(({ amountCents: _amountCents, ...item }) => item),
     taxableOptions: fromCents(taxableOptionsCents),
@@ -435,6 +480,8 @@ export function calculateDeal(input = {}) {
     upfrontAmount: fromCents(upfrontAmountCents),
     fees: dollarsForCentsObject(feeCents),
     taxableTotalBeforeCredit: fromCents(taxableTotalBeforeCreditCents),
+    tradeTaxDeduction: fromCents(tradeTaxDeductionCents),
+    tradeTaxSavings: fromCents(tradeTaxSavingsCents),
     taxBase: fromCents(taxBaseCents),
     salesTax: fromCents(salesTaxCents),
     outTheDoor: fromCents(outTheDoorCents),
@@ -723,7 +770,7 @@ function upperBoundForMonotonicDealValue({ currentValueCents, targetCents, evalu
   if (evaluate(upperCents).metricCents >= targetCents) return upperCents;
 
   upperCents = Math.max(100_000, upperCents);
-  const maximumSupportedCents = 10_000_000_000;
+  const maximumSupportedCents = CALCULATION_LIMITS.maxAmount * CENTS_PER_DOLLAR;
   while (evaluate(upperCents).metricCents < targetCents) {
     if (upperCents >= maximumSupportedCents) {
       throw new RangeError('Target is outside the supported solver range.');

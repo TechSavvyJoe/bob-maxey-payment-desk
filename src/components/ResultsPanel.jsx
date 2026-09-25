@@ -1,171 +1,66 @@
-import { useRef, useState } from "react";
-import { formatCurrency, formatNumber, formatWholeCurrency } from "../lib/formatters.js";
-import { EditIcon } from "./Icons.jsx";
+import { formatCurrency, formatNumber } from "../lib/formatters.js";
+import { buildProposalGroups, getDealSummary } from "../lib/proposal.js";
+import { ArrowIcon, EditIcon, GridIcon } from "./Icons.jsx";
 
-const parseMoney = (raw) => {
-  const number = Number(String(raw).replace(/[^0-9.]/g, ""));
-  return Number.isFinite(number) ? Math.max(0, number) : 0;
-};
-
-const BreakdownRow = ({ label, value, strong = false, className = "" }) => (
-  <div className={`breakdown-row ${strong ? "is-strong" : ""} ${className}`}>
+const money = (value) => formatCurrency(value, { cents: true });
+const BreakdownRow = ({ label, value, strong = false }) => (
+  <div className={"breakdown-row" + (strong ? " is-strong" : "")}>
     <span>{label}</span>
     <strong>{value}</strong>
   </div>
 );
 
-export default function ResultsPanel({
-  dealInput,
-  result,
-  customer = false,
-  onPaymentTargetChange,
-  onActivatePaymentTarget,
-  resetSignal,
-}) {
-  const [editing, setEditing] = useState(false);
-  // `draft` is only read while editing, and startEditing seeds it, so it
-  // needs no syncing back from `result` in between.
-  const [draft, setDraft] = useState(String(Math.round(result.monthlyPayment)));
-  const inputRef = useRef(null);
-
-  // "Reset deal" clears the whole deal elsewhere in the app; drop any
-  // target-payment edit in progress so it can't show a stale value.
-  const [lastResetSignal, setLastResetSignal] = useState(resetSignal);
-  if (resetSignal !== lastResetSignal) {
-    setLastResetSignal(resetSignal);
-    setEditing(false);
-  }
-
-  const startEditing = () => {
-    if (!result.isFinanced) return;
-    const startingValue = Math.round(result.monthlyPayment);
-    onActivatePaymentTarget(startingValue);
-    setDraft(String(startingValue));
-    setEditing(true);
-    requestAnimationFrame(() => {
-      inputRef.current?.focus();
-      inputRef.current?.select();
-    });
-  };
-
-  const taxesAndFees = result.salesTax + result.fees.totalFees;
-  const paymentDisplay = editing ? draft : String(Math.round(result.monthlyPayment));
-  const cashHasCredit = !result.isFinanced && result.customerCredit > 0;
+export default function ResultsPanel({ dealInput, result, customer = false, onActivatePaymentTarget, onComparePayments, onReviewEstimate, onStartEstimate, hasInputErrors = false }) {
+  const summary = getDealSummary({ dealInput, result, hasInputErrors });
+  const groups = customer ? [] : buildProposalGroups(result);
+  const isStarting = !customer && !(result.salePrice > 0) && !hasInputErrors;
 
   return (
-    <aside className={`results-panel ${customer ? "results-panel--customer" : ""}`}>
-      <section aria-live="polite" className="results-payment">
-        <div className="results-payment__label-row">
-          <h2>{result.isFinanced ? (editing ? "Target payment" : "Estimated payment") : cashHasCredit ? "Estimated customer credit" : "Cash due after trade"}</h2>
-          {!customer && result.isFinanced ? (
-            <button
-              aria-label="Edit target monthly payment"
-              className="payment-edit-button"
-              onClick={startEditing}
-              type="button"
-            >
-              <EditIcon size={24} />
-            </button>
-          ) : null}
+    <aside className={"results-panel" + (customer ? " results-panel--customer" : "") + (isStarting ? " results-panel--starting" : "")} aria-label={customer ? "Selected estimate summary" : "Current estimate summary"}>
+      <section className="results-payment">
+        <div className="results-payment__label-row"><h2>{summary.headline}</h2></div>
+        <div className={"payment-number" + (summary.isFinanced ? "" : " payment-number--cash")}>
+          <strong>{isStarting ? "—" : money(summary.headlineAmount)}</strong>
+          {summary.isFinanced && !isStarting ? <span className="payment-number__suffix">/mo</span> : null}
         </div>
-        {result.isFinanced ? (
-          <div className={`payment-number ${editing ? "is-editing" : ""}`}>
-            <span aria-hidden="true">$</span>
-            {customer ? (
-              <strong>{Math.round(result.monthlyPayment).toLocaleString("en-US")}</strong>
-            ) : (
-              <input
-                aria-label="Estimated monthly payment; edit to set a target"
-                inputMode="decimal"
-                onBlur={() => setEditing(false)}
-                onChange={(event) => {
-                  setDraft(event.target.value);
-                  onPaymentTargetChange(parseMoney(event.target.value));
-                }}
-                onFocus={() => {
-                  if (!editing) startEditing();
-                }}
-                ref={inputRef}
-                type="text"
-                value={paymentDisplay}
-              />
-            )}
-            <span className="payment-number__suffix">/mo</span>
-          </div>
-        ) : (
-          <div className="payment-number payment-number--cash">
-            <strong>{formatCurrency(cashHasCredit ? result.customerCredit : result.dueAtSigning)}</strong>
-          </div>
-        )}
-        {result.isFinanced ? (
-          <p>{dealInput.termMonths} months at {formatNumber(dealInput.apr)}% APR</p>
-        ) : (
-          <p>{cashHasCredit ? "Trade value exceeds the cash balance" : "Includes trade payoff or equity"}</p>
-        )}
-        {editing ? (
-          <p className="payment-target-note">
-            Current estimate {formatWholeCurrency(result.monthlyPayment)}/mo. Adjustment options are shown below.
-          </p>
+        {isStarting ? <p>Start with the vehicle selling price.</p> : summary.isFinanced ? (
+          <p>{summary.termMonths} months at {formatNumber(summary.apr)}% APR</p>
+        ) : <p>{summary.hasCashCredit ? "Amount in the customer's favor after trade settlement" : "Includes trade payoff or equity"}</p>}
+        {!customer && !isStarting && summary.isFinanced && onActivatePaymentTarget ? (
+          <button className="payment-edit-button" onClick={() => onActivatePaymentTarget(result.monthlyPayment)} type="button">
+            <EditIcon size={18} />Set payment target
+          </button>
         ) : null}
       </section>
-
-      {result.isFinanced ? (
-        <section className="result-totals result-totals--single">
-          <BreakdownRow label="Amount financed" value={formatCurrency(result.amountFinanced)} />
-        </section>
-      ) : (
-        <section className="result-totals">
-          <BreakdownRow label="Out-the-door" value={formatCurrency(result.outTheDoor)} />
-          <BreakdownRow
-            label={result.tradeEquity < 0 ? "Negative equity" : "Trade equity"}
-            value={formatCurrency(Math.abs(result.tradeEquity))}
-          />
-          <BreakdownRow label="Taxes & fees" value={formatCurrency(taxesAndFees)} />
-        </section>
-      )}
-
-      {!customer ? (
-        <section className="deal-breakdown">
-          <h2>Deal breakdown</h2>
-          <BreakdownRow label="Selling price" value={formatCurrency(result.salePrice)} />
-          <BreakdownRow label="Add-ons" value={`+${formatCurrency(result.optionalItemsTotal)}`} />
-          <BreakdownRow label="Taxable fees" value={`+${formatCurrency(result.fees.taxableFixedFees)}`} />
-          <BreakdownRow label="Sales tax" value={`+${formatCurrency(result.salesTax)}`} />
-          <BreakdownRow label="State fees" value={`+${formatCurrency(result.fees.plateFees)}`} />
-          <BreakdownRow label="Out-the-door" strong value={formatCurrency(result.outTheDoor)} />
-          {result.isFinanced ? (
-            <>
-              <BreakdownRow label="Cash down" value={`−${formatCurrency(result.cashDown)}`} />
-              {result.tradeEquity < 0 ? (
-                <BreakdownRow label="Negative equity" value={`+${formatCurrency(result.negativeEquity)}`} />
-              ) : (
-                <BreakdownRow label="Positive trade equity" value={`−${formatCurrency(result.positiveEquity)}`} />
-              )}
-              <BreakdownRow label="Amount financed" strong value={formatCurrency(result.amountFinanced)} />
-              <BreakdownRow label="Due at signing" value={formatCurrency(result.dueAtSigning)} />
-            </>
-          ) : null}
-          {!result.isFinanced ? (
-            <>
-              <BreakdownRow
-                label={result.tradeEquity < 0 ? "Negative trade equity" : "Positive trade equity"}
-                value={`${result.tradeEquity < 0 ? "+" : "−"}${formatCurrency(Math.abs(result.tradeEquity))}`}
-              />
-              <BreakdownRow
-                label={cashHasCredit ? "Customer credit" : "Cash due after trade"}
-                strong
-                value={formatCurrency(cashHasCredit ? result.customerCredit : result.dueAtSigning)}
-              />
-            </>
-          ) : null}
-        </section>
-      ) : null}
-
-      {result.warnings.length ? (
+      {!isStarting ? <section className="result-totals" aria-label="Key deal totals">
+        {summary.isFinanced ? <BreakdownRow label="Amount financed" value={money(summary.amountFinanced)} /> : null}
+        <BreakdownRow label="Out-the-door total" value={money(summary.outTheDoor)} />
+        <BreakdownRow label={summary.isFinanced ? "Due at signing" : "Cash due after trade"} value={money(summary.dueAtSigning)} />
+        {summary.hasCashCredit ? <BreakdownRow label="Customer credit" value={money(summary.customerCredit)} /> : null}
+      </section> : <div className="estimate-start"><strong>Your next deal starts here.</strong><p>Payments, taxes, and totals update as you enter the figures.</p><button type="button" onClick={onStartEstimate}>Enter selling price<ArrowIcon size={17} /></button></div>}
+      {!isStarting && summary.reasons.length ? (
         <div className="result-warning" role="alert">
-          {result.warnings.map((warning) => <p key={warning}>{warning}</p>)}
+          <strong>Estimate needs attention</strong>
+          {summary.reasons.map((reason) => <p key={reason}>{reason}</p>)}
         </div>
       ) : null}
+      {!customer && !isStarting ? (
+        <details className="deal-breakdown">
+          <summary>View itemized deal breakdown</summary>
+          {groups.map((section) => (
+            <section className="breakdown-group" key={section.id}>
+              <h3>{section.title}</h3>
+              {section.rows.map((item) => <BreakdownRow key={item.id} label={item.label} value={money(item.amount)} />)}
+              <BreakdownRow label={section.total.label} value={money(section.total.amount)} strong />
+            </section>
+          ))}
+        </details>
+      ) : null}
+      {!customer && !isStarting ? <div className="estimate-actions">
+        {summary.isFinanced && onComparePayments ? <button className="estimate-compare" type="button" onClick={onComparePayments}><GridIcon size={18} />Compare payments</button> : null}
+        {onReviewEstimate ? <button className="estimate-review" type="button" onClick={onReviewEstimate}>Review customer estimate<ArrowIcon size={18} /></button> : null}
+        <p>Review the itemized estimate before sharing or printing.</p>
+      </div> : null}
     </aside>
   );
 }

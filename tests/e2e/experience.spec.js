@@ -1,0 +1,177 @@
+import { test, expect } from '@playwright/test';
+import AxeBuilder from '@axe-core/playwright';
+
+test.beforeEach(async ({ page }) => {
+  await page.goto('/');
+  await expect(page.locator('#worksheet-heading')).toBeVisible();
+  await page.locator('details.deal-details > summary').click();
+  await page.getByLabel('Estimate date', { exact: true }).fill('09/24/26');
+  await page.locator('details.deal-details > summary').click();
+  await page.getByLabel('Selling price', { exact: true }).fill('30000');
+  await page.getByLabel('Selling price', { exact: true }).blur();
+});
+
+test('product categories, explicit Other tax treatment, and complete customer export', async ({ page }, testInfo) => {
+  await page.locator('details.deal-details > summary').click();
+  await page.getByLabel('Vehicle / stock reference').fill('Test Explorer / stock 123');
+  await page.locator('details.deal-details > summary').click();
+  await page.getByRole('button', { name: 'Add product', exact: true }).click();
+  await expect(page.getByLabel('Product 1 type')).toHaveValue('service-contract');
+  await expect(page.getByLabel('Product 1 type').locator('option')).toHaveText(['Service Contract', 'Gap', 'Other']);
+  await page.getByLabel('Service Contract amount').fill('2000');
+  await page.getByRole('button', { name: 'Add product', exact: true }).click();
+  await page.getByLabel('Product 2 type').selectOption('gap');
+  await page.getByLabel('Gap amount').fill('900');
+  await page.getByRole('button', { name: 'Add product', exact: true }).click();
+  await page.getByLabel('Product 3 type').selectOption('other');
+  await page.getByLabel('Name for product or add-on 3').fill('Accessories');
+  await page.getByLabel('Accessories amount').fill('1000');
+  await page.getByRole('button', { name: 'Customer view', exact: true }).click();
+  await expect(page.locator('#worksheet-heading')).toBeVisible();
+  await expect(page.getByLabel('Tax treatment for Accessories')).toBeFocused();
+  await page.getByLabel('Tax treatment for Accessories').selectOption('taxable');
+  await page.getByRole('button', { name: 'Customer view', exact: true }).click();
+  await expect(page.getByRole('button', { name: 'Copy summary' })).toBeEnabled();
+  await expect(page.locator('.customer-ledger').filter({ hasText: 'Service Contract' })).toContainText('Accessories');
+  await expect(page.getByRole('table', { name: 'Customer payment options' })).toContainText('Selected');
+  await page.evaluate(() => Object.defineProperty(navigator, 'clipboard', { configurable: true, value: { writeText: async text => { window.testCopiedEstimate = text; } } }));
+  await page.getByRole('button', { name: 'Copy summary' }).click();
+  await expect(page.getByRole('status')).toContainText('copied');
+  const copied = await page.evaluate(() => window.testCopiedEstimate);
+  expect(copied).toContain('Test Explorer / stock 123');
+  expect(copied).toContain('Service Contract');
+  expect(copied).toContain('Accessories');
+  expect(copied).toContain('does not restore this proposal');
+  expect(copied).toContain('not a financing approval or contract');
+  await page.emulateMedia({ media: 'print' });
+  await expect(page.locator('.proposal-qualification')).toBeVisible();
+  await expect(page.locator('.customer-actions')).toBeHidden();
+  await expect(page.locator('.proposal-dealership')).toBeVisible();
+  if (testInfo.project.name === 'chromium') {
+    const pdf = await page.pdf({ path: testInfo.outputPath('customer-estimate.pdf'), printBackground: false, preferCSSPageSize: true });
+    expect(pdf.byteLength).toBeGreaterThan(10000);
+    await testInfo.attach('customer-estimate', { body: pdf, contentType: 'application/pdf' });
+  }
+});
+
+test('grid selection and customer navigation retain visible totals on every device', async ({ page }) => {
+  const mobile = page.viewportSize().width <= 800;
+  await (mobile ? page.locator('#mobile-grid-trigger') : page.locator('.grid-jump')).click();
+  await expect(page.getByRole('heading', { name: 'Payment grid', exact: true })).toBeVisible();
+  await page.getByRole('button', { name: /Use 60 months.*2,000.*down/ }).filter({ visible: true }).click();
+  await expect(page.getByLabel('Cash down', { exact: true })).toHaveValue('2,000');
+  await expect(page.getByRole('button', { name: '60', exact: true })).toHaveAttribute('aria-pressed', 'true');
+  await (mobile ? page.locator('#mobile-grid-trigger') : page.locator('.grid-jump')).click();
+  await page.getByRole('button', { name: 'Customer view', exact: true }).click();
+  await expect(page.getByRole('heading', { name: 'Your purchase estimate' })).toBeVisible();
+  const summary = page.getByRole('complementary', { name: 'Selected estimate summary' });
+  for (const text of ['Amount financed', 'Out-the-door total', 'Due at signing']) await expect(summary).toContainText(text);
+  await expect(summary).toBeVisible();
+});
+
+test('collapsed sections remove inputs from keyboard navigation and restore focus', async ({ page }) => {
+  const button = page.locator('#trade-cash-heading');
+  await button.click();
+  await expect(button).toHaveAttribute('aria-expanded', 'false');
+  await expect(page.getByLabel('Trade allowance', { exact: true })).toBeHidden();
+  await page.keyboard.press('Tab');
+  expect(await page.evaluate(() => document.activeElement.closest('#trade-cash-content') === null)).toBe(true);
+  await button.click();
+  await expect(page.getByLabel('Trade allowance', { exact: true })).toBeVisible();
+});
+
+test('copy fallback is explicit and share failure does not invoke print', async ({ page }) => {
+  await page.evaluate(() => {
+    window.testPrintCount = 0;
+    window.print = () => window.testPrintCount++;
+    Object.defineProperty(navigator, 'clipboard', { configurable: true, value: { writeText: async () => { throw new Error('blocked'); } } });
+    Object.defineProperty(navigator, 'share', { configurable: true, value: async () => { throw new Error('unavailable'); } });
+  });
+  await page.getByRole('button', { name: 'Customer view', exact: true }).click();
+  await page.getByRole('button', { name: 'Copy summary' }).click();
+  await expect(page.getByLabel('Copyable estimate summary')).toBeVisible();
+  await page.getByRole('button', { name: 'Share', exact: true }).click();
+  await expect(page.getByRole('status')).toContainText('Sharing is unavailable');
+  expect(await page.evaluate(() => window.testPrintCount)).toBe(0);
+});
+
+test('add product keeps readable text on hover', async ({ page }, testInfo) => {
+  test.skip(testInfo.project.name === 'mobile', 'Touch devices do not expose pointer hover.');
+  const button = page.getByRole('button', { name: 'Add product', exact: true });
+  await button.hover();
+  await expect(button).toHaveCSS('color', 'rgb(4, 80, 180)');
+  const scan = await new AxeBuilder({ page }).include('#add-product').withRules(['color-contrast']).analyze();
+  expect(scan.violations).toEqual([]);
+});
+
+test('estimate calendar has accessible controls and fits the viewport', async ({ page }) => {
+  await page.locator('details.deal-details > summary').click();
+  await page.getByRole('button', { name: 'Open estimate date calendar' }).click();
+  const dialog = page.getByRole('dialog', { name: 'Choose estimate date' });
+  await expect(dialog).toBeVisible();
+  const bounds = await dialog.boundingBox();
+  expect(bounds.x).toBeGreaterThanOrEqual(0);
+  expect(bounds.x + bounds.width).toBeLessThanOrEqual(page.viewportSize().width);
+  const scan = await new AxeBuilder({ page }).withTags(['wcag2a', 'wcag2aa', 'wcag21aa', 'wcag22aa']).analyze();
+  expect(scan.violations.map(v => ({ id: v.id, nodes: v.nodes.map(n => n.failureSummary) }))).toEqual([]);
+});
+
+test('automated accessibility scan covers dealer, products, grid, and customer', async ({ page }) => {
+  test.setTimeout(90000);
+  // Scan settled surfaces rather than controls moving during smooth section scrolling.
+  await page.emulateMedia({ reducedMotion: 'reduce' });
+  await page.getByRole('button', { name: 'Add product', exact: true }).click();
+  await page.getByLabel('Product 1 type').selectOption('other');
+  await page.getByLabel('Target payment', { exact: true }).fill('350');
+  for (const surface of ['dealer', 'grid', 'customer']) {
+    if (surface === 'grid') {
+      await page.getByLabel('Tax treatment for product or add-on 1').selectOption('not-taxable');
+      await (page.viewportSize().width <= 800 ? page.locator('#mobile-grid-trigger') : page.locator('.grid-jump')).click();
+      await expect(page.getByRole('heading', { name: 'Payment grid', exact: true })).toBeVisible();
+    }
+    if (surface === 'customer') {
+      await page.getByRole('button', { name: 'Customer view', exact: true }).click();
+      await expect(page.getByRole('heading', { name: 'Your purchase estimate' })).toBeVisible();
+    }
+    const scan = await new AxeBuilder({ page }).withTags(['wcag2a', 'wcag2aa', 'wcag21aa', 'wcag22aa']).analyze();
+    expect(scan.violations.map(v => ({ id: v.id, description: v.description, nodes: v.nodes.map(n => ({ target: n.target, failureSummary: n.failureSummary })) })), surface).toEqual([]);
+  }
+});
+
+test('an invalid mobile grid rate can be recovered after returning to the worksheet', async ({ page }, testInfo) => {
+  test.skip(testInfo.project.name !== 'mobile', 'Hidden grid recovery is a mobile navigation regression.');
+  await page.locator('#mobile-grid-trigger').click();
+  const rate = page.getByLabel('APR for 60 months', { exact: true }).filter({ visible: true });
+  await rate.fill('6x');
+  await page.getByRole('button', { name: 'Back to calculator' }).click();
+  await expect(page.locator('#worksheet-heading')).toBeVisible();
+  await page.getByRole('button', { name: 'Customer view', exact: true }).click();
+  await expect(page.getByRole('heading', { name: 'Payment grid', exact: true })).toBeVisible();
+  await expect(rate).toBeFocused();
+  await page.setViewportSize({ width: 1024, height: 900 });
+  const desktopRate = page.getByLabel('APR for 60 months', { exact: true }).filter({ visible: true });
+  await expect(desktopRate).toHaveValue('6x');
+  await expect(desktopRate).toHaveAttribute('aria-invalid', 'true');
+  await page.getByRole('button', { name: 'Go to field' }).click();
+  await expect(desktopRate).toBeFocused();
+  await desktopRate.fill('6');
+  await page.getByRole('button', { name: 'Customer view', exact: true }).click();
+  await expect(page.getByRole('heading', { name: 'Your purchase estimate' })).toBeVisible();
+});
+
+test('responsive worksheets keep amounts and target controls within their containers', async ({ page }, testInfo) => {
+  test.skip(testInfo.project.name !== 'chromium', 'Breakpoint sweep is run once; user journeys run on all projects.');
+  await page.getByLabel('Target payment', { exact: true }).fill('350');
+  for (const width of [320, 390, 760, 800, 801, 900, 1024, 1280, 1440]) {
+    await page.setViewportSize({ width, height: 1000 });
+    const bounds = await page.evaluate(() => {
+      const visible = element => element.getClientRects().length && getComputedStyle(element).visibility !== 'hidden';
+      return {
+        pageOverflow: document.documentElement.scrollWidth > innerWidth + 1,
+        clipped: [...document.querySelectorAll('.field-row, .payment-number, .target-setup, .suggestion, .suggestion-metrics, .term-buttons, .option-row')]
+          .filter(visible).filter(element => element.scrollWidth > element.clientWidth + 2).map(element => element.className),
+      };
+    });
+    expect(bounds, `Viewport ${width}`).toEqual({ pageOverflow: false, clipped: [] });
+  }
+});

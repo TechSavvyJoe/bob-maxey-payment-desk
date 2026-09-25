@@ -17,7 +17,7 @@ export default class ErrorBoundary extends React.Component {
 
   componentDidCatch(error, info) {
     if (typeof console !== "undefined") {
-      console.error("Payment Desk render error", error, info?.componentStack);
+      console.error("Payment Desk render error", error?.name, info?.componentStack);
     }
   }
 

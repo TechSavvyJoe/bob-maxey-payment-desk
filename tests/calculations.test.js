@@ -3,18 +3,28 @@ import assert from 'node:assert/strict';
 
 import {
   CALCULATION_DEFAULTS,
+  CALCULATION_LIMITS,
   RATE_GRID_DEFAULTS,
-  calculateDeal,
+  calculateDeal as calculateUndatedDeal,
   calculatePayment,
-  calculateRateGrid,
+  calculateRateGrid as calculateUndatedGrid,
   fromCents,
   paymentFactor,
+  normalizeApr,
   solveAmountFinancedForPayment,
   solveCentValueForTarget,
-  solveOptionalItemAmountForTarget,
-  solveSalePriceForTarget,
+  solveOptionalItemAmountForTarget as solveUndatedItem,
+  solveSalePriceForTarget as solveUndatedPrice,
   toCents,
 } from '../src/lib/calculations.js';
+import { getMichiganPolicy, POLICY_CONFIG, todayDealDate } from '../src/lib/policy.js';
+
+// Keep historical fixtures deterministic when policy dates roll over.
+const dated = (input = {}) => ({ dealDate: '2026-09-24', ...input });
+const calculateDeal = (input) => calculateUndatedDeal(dated(input));
+const calculateRateGrid = (input, options) => calculateUndatedGrid(dated(input), options);
+const solveSalePriceForTarget = (input, options) => solveUndatedPrice(dated(input), options);
+const solveOptionalItemAmountForTarget = (input, options) => solveUndatedItem(dated(input), options);
 
 test('currency helpers round decimal values to exact cents', () => {
   assert.equal(toCents('$1,234.565'), 123_457);
@@ -81,6 +91,23 @@ test('matrix 2: down only reduces amount financed and 0% interest stays zero', (
   assert.equal(deal.totalOfPayments, 23_863.84);
   assert.equal(deal.totalInterest, 0);
   assert.equal(deal.dueAtSigning, 3_000);
+});
+
+test('trade deduction and tax savings explain the cap and zero-tax floor in cents', () => {
+  for (const dealType of ['cash', 'finance']) {
+    for (const [salePrice, tradeAllowance, deduction, savings] of [
+      [30000, 10000, 10000, 600], [30000, 18000, 12000, 720], [1000, 18000, 1084, 65.04],
+    ]) {
+      const input = { dealDate: '2026-09-25', dealType, salePrice, tradeAllowance, tradePayoff: 20000 };
+      const deal = calculateDeal(input);
+      const withoutTrade = calculateDeal({ ...input, tradeAllowance: 0 });
+      assert.equal(deal.tradeTaxDeduction, deduction);
+      assert.equal(deal.tradeTaxSavings, savings);
+      assert.equal(deal.cents.tradeTaxSavings, withoutTrade.cents.salesTax - deal.cents.salesTax);
+      assert.equal(deal.cents.taxBase, deal.cents.taxableTotalBeforeCredit - deal.cents.tradeTaxDeduction);
+      assert.ok(deal.salesTax >= 0);
+    }
+  }
 });
 
 test('matrix 3: trade tax credit is capped at $12,000 and uses allowance, not payoff', () => {
@@ -405,8 +432,8 @@ test('excess trade equity becomes a cash customer credit instead of negative due
   });
 
   assert.equal(deal.dueAtSigning, 0);
-  assert.equal(deal.customerCredit, 6_656);
-  assert.equal(deal.balanceAfterTrade, -6_656);
+  assert.equal(deal.customerCredit, 6_686);
+  assert.equal(deal.balanceAfterTrade, -6_686);
 });
 
 test('negative amount financed remains visible while payment is zero with a warning', () => {
@@ -464,4 +491,121 @@ test('payment helper uses full precision and validates term and APR', () => {
     () => calculatePayment({ principal: 10_000, apr: 5, termMonths: 0 }),
     /positive whole number/,
   );
+});
+
+test('APR is normalized once with half-up precision across payment, deal and grid', () => {
+  assert.equal(normalizeApr('6.005'), 6.01);
+  assert.equal(normalizeApr(6.004), 6);
+  assert.equal(normalizeApr(''), 0);
+  const input = { salePrice: 30_000, apr: 6.005, termMonths: 72 };
+  const deal = calculateDeal(input);
+  assert.equal(deal.apr, 6.01);
+  assert.equal(deal.monthlyPayment, 533.20);
+  assert.equal(calculatePayment({ principal: deal.amountFinanced, apr: '6.005', termMonths: 72 }).payment, 533.20);
+  const grid = calculateRateGrid(input, { rows: [72], downPayments: [0], includeCustom: false });
+  assert.equal(grid.rows[0].apr, 6.01);
+  assert.equal(grid.rows[0].cells[0].payment, 533.20);
+});
+
+test('dated trade policy handles every scheduled boundary and flags fee review', () => {
+  const expected = [
+    ['2026-01-01', 12_000, 1_098.84, true],
+    ['2026-12-31', 12_000, 1_098.84, true],
+    ['2027-01-01', 13_000, 1_038.84, false],
+    ['2027-12-31', 13_000, 1_038.84, false],
+    ['2028-01-01', 14_000, 978.84, false],
+    ['2028-12-31', 14_000, 978.84, false],
+    ['2029-01-01', null, 918.84, false],
+    ['2030-01-01', null, 918.84, false],
+  ];
+  for (const [dealDate, cap, tax, complete] of expected) {
+    const deal = calculateDeal({ salePrice: 30_000, tradeAllowance: 15_000, dealDate });
+    assert.equal(deal.tradeTaxCreditCap, cap, dealDate);
+    assert.equal(deal.salesTax, tax, dealDate);
+    assert.equal(deal.isComplete, complete, dealDate);
+    assert.equal(deal.policy.dealDate, dealDate);
+    assert.equal(deal.policy.reviewRequired, !complete);
+  }
+  assert.equal(POLICY_CONFIG.sources.length, 3);
+  assert.equal(getMichiganPolicy().dealDate, todayDealDate());
+  assert.equal(todayDealDate(new Date('2027-01-01T03:00:00Z')), '2026-12-31');
+});
+
+test('unsupported dates are qualified and malformed calendar dates are rejected', () => {
+  const historical = calculateDeal({ salePrice: 30_000, tradeAllowance: 15_000, dealDate: '2025-12-31' });
+  assert.equal(historical.tradeTaxCredit, 0);
+  assert.equal(historical.isComplete, false);
+  assert.match(historical.warnings[0], /outside the supported/);
+  for (const date of ['2026-02-30', '2026-13-01', 'not-a-date', '09/24/2026']) {
+    assert.throws(() => getMichiganPolicy(date), /date/);
+  }
+  assert.equal(getMichiganPolicy('2028-02-29').year, 2028);
+});
+
+test('document fee uses a conservative lower cap and reverse pricing follows it', () => {
+  const low = calculateDeal({ salePrice: 1_000, apr: 0 });
+  assert.equal(low.fees.documentFee, 50);
+  assert.equal(low.salesTax, 65.04);
+  assert.equal(low.outTheDoor, 1_180.04);
+  assert.equal(calculateDeal({ salePrice: 5_599.99 }).fees.documentFee, 279.99);
+  assert.equal(calculateDeal({ salePrice: 5_600 }).fees.documentFee, 280);
+  assert.equal(calculateDeal({ salePrice: 5_600.01 }).fees.documentFee, 280);
+  assert.equal(calculateDeal({ salePrice: 0.01 }).fees.documentFee, 0);
+  assert.equal(calculateDeal({ salePrice: 1_000, dealType: 'cash' }).fees.documentFee, 50);
+  const solved = solveSalePriceForTarget({ salePrice: 30_000 }, { target: 1_180.04 });
+  assert.equal(solved.salePrice, 1_000);
+  assert.equal(solved.exact, true);
+  assert.equal(solved.deal.fees.documentFee, 50);
+});
+
+test('missing new registration fee is incomplete while explicit zero is distinguishable', () => {
+  for (const newPlateAmount of [undefined, null, '', ' ']) {
+    const deal = calculateDeal({ salePrice: 30_000, plateMode: 'new', newPlateAmount });
+    assert.equal(deal.isComplete, false);
+    assert.equal(deal.newPlateAmountKnown, false);
+    assert.match(deal.incompleteReasons.join(' '), /Registration costs are excluded/);
+  }
+  const zero = calculateDeal({ salePrice: 30_000, plateMode: 'new', newPlateAmount: 0 });
+  const known = calculateDeal({ salePrice: 30_000, plateMode: 'new', newPlateAmount: 250 });
+  assert.equal(zero.isComplete, true);
+  assert.equal(known.isComplete, true);
+  assert.equal(known.cents.outTheDoor - zero.cents.outTheDoor, 25_000);
+  assert.equal(calculateDeal().isComplete, false);
+});
+
+test('financed versus upfront negative equity produces explicit reconciling amounts', () => {
+  const input = { salePrice: 30_000, cashDown: 2_000, tradeAllowance: 10_000, tradePayoff: 14_000 };
+  for (const rollNegativeEquity of [true, false]) {
+    const deal = calculateDeal({ ...input, rollNegativeEquity });
+    assert.equal(deal.cents.amountFinanced,
+      deal.cents.outTheDoor - deal.cents.cashDown + deal.cents.financedNegativeEquity);
+    assert.equal(deal.cents.dueAtSigning, deal.cents.cashDown + deal.cents.upfrontNegativeEquity);
+    assert.equal(deal.financedNegativeEquity, rollNegativeEquity ? 4_000 : 0);
+    assert.equal(deal.upfrontNegativeEquity, rollNegativeEquity ? 0 : 4_000);
+  }
+});
+
+test('invalid and excessive core inputs fail with explicit range errors', () => {
+  assert.throws(() => calculateDeal({ salePrice: '30k' }), /Invalid currency/);
+  assert.throws(() => calculateDeal({ salePrice: 1_000_001 }), /cannot exceed/);
+  assert.throws(() => calculateDeal({ apr: 50.001 }), /APR cannot exceed/);
+  assert.throws(() => calculatePayment({ principal: 1_000, termMonths: 121 }), /Term cannot exceed/);
+  assert.throws(() => calculatePayment({ principal: 1_000, apr: true }), /number/);
+  assert.throws(() => calculateDeal({ optionalItems: Array.from({ length: 51 }, () => ({ amount: 1 })) }), /more than 50/);
+  assert.throws(() => toCents('1'.repeat(1_025)), /too long/);
+  assert.equal(CALCULATION_LIMITS.maxAmount, 1_000_000);
+});
+
+test('zero-interest cents and independent amortization fixtures remain stable', () => {
+  const zero = calculatePayment({ principal: 1, apr: 0, termMonths: 72 });
+  assert.equal(zero.payment, 0.01);
+  assert.equal(zero.totalOfPayments, 1);
+  assert.equal(zero.totalInterest, 0);
+  assert.equal(calculatePayment({ principal: 0.01, apr: 0, termMonths: 36 }).payment, 0);
+  // Independent Decimal PMT fixtures, rounded half-up to cents.
+  assert.equal(calculatePayment({ principal: 30_000, apr: 6, termMonths: 60 }).payment, 579.98);
+  assert.equal(calculatePayment({ principal: 30_000, apr: 6, termMonths: 72 }).payment, 497.19);
+  assert.equal(calculatePayment({ principal: 32_163.84, apr: 6.5, termMonths: 72 }).payment, 540.67);
+  const pennyTax = calculateDeal({ salePrice: 10_000.01, tradeAllowance: 9_000 });
+  assert.equal(pennyTax.salesTax, 78.84);
 });
