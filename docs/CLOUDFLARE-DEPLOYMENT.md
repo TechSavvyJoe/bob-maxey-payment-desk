@@ -1,11 +1,12 @@
 # MySoldLog deployment
 
-Published to Cloudflare Pages on September 24, 2026. The user selected `desking.mysoldlog.com`, which is now attached in Cloudflare. GoDaddy DNS configuration and HTTPS activation are still pending; existing GoDaddy DNS and Firebase hosting are unchanged.
+Published to Cloudflare Pages on September 24, 2026. The selected address **https://desking.mysoldlog.com/** went live on September 25, 2026. Its GoDaddy CNAME is verified on both authoritative nameservers, HTTPS returns 200, and the application was visually verified in the user's work browser. The existing root-domain DNS and Firebase hosting are unchanged.
 
 ## Current deployment
 
 - Project: `mysoldlog-desking`, in the verified Cloudflare account.
-- Live address: `https://mysoldlog-desking.pages.dev/`.
+- Live address: `https://desking.mysoldlog.com/`.
+- Cloudflare address: `https://mysoldlog-desking.pages.dev/`.
 - Deployment ID: `c879c611-74cf-45c2-891b-c0b9af9d2b47`.
 - Deployment URL: `https://c879c611.mysoldlog-desking.pages.dev`.
 - Source commit: `3f191ff` (build display `3f191ff9`).
@@ -15,16 +16,16 @@ Published to Cloudflare Pages on September 24, 2026. The user selected `desking.
 
 The Cloudflare custom domain was added on September 24, 2026 at 23:25 UTC, with domain ID `69b7b0d7-4a88-4a32-bf9f-0a5afc19965b`. Cloudflare returned `initializing` with verification pending. Both authoritative nameservers returned NXDOMAIN for `desking.mysoldlog.com` before the planned DNS change.
 
-The remaining step is signing in to GoDaddy and adding this DNS record, then verifying DNS and HTTPS activation:
+The following record was saved through the authenticated GoDaddy work-browser session and confirmed in the DNS table:
 
 | Field | Value |
 | --- | --- |
 | Type | CNAME |
 | Name | desking |
 | Value | mysoldlog-desking.pages.dev |
-| TTL | Default |
+| TTL | 1 hour (3600 seconds, verified from authoritative DNS) |
 
-The GoDaddy browser session currently requires sign-in. The record has **not** been saved there yet. Do not report the custom address as live until its authoritative DNS and HTTPS endpoint are verified.
+Both `ns59.domaincontrol.com` and `ns60.domaincontrol.com` return this CNAME. The GoDaddy DNS table contains 10 records after the addition, with the existing nine records preserved. Cloudflare domain validation was retried after propagation. HTTPS returned 200 at 13:45 UTC on September 25, 2026, with the expected deployment ETag and security headers. Plain HTTP redirects to HTTPS. The custom address displayed the fully styled application and build `3f191ff9` in the user's work browser; `mysoldlog.com` continued to return its original Sales Ledger response and ETag.
 
 ## Existing domain
 
