@@ -7,6 +7,7 @@ import "@fontsource/ibm-plex-sans/latin-500.css";
 import "@fontsource/ibm-plex-sans/latin-600.css";
 import "@fontsource/ibm-plex-sans/latin-700.css";
 import "./redesign.css";
+import "./customer-print.css";
 
 function Root() {
   // Remounting App on reset clears whatever deal state triggered the crash.

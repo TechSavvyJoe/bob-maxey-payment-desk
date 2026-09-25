@@ -40,6 +40,16 @@ The initial full local run passed 64 browser checks with six intentionally inapp
 
 The engineering review found no known npm dependency vulnerabilities, tracked secrets, unsafe HTML injection, customer-data persistence, or unexpected third-party requests. HTTPS/redirects and configured security headers were checked. Live branch protection requires the Release checks status, a pull request, resolved conversations, and an up-to-date branch, including for administrators. Cloudflare publication remains a separate explicit upload of the reviewed build.
 
+## One-page customer document refinement
+
+The customer Print action now uses a dedicated branded Letter-page composition rather than the responsive screen ledger. A navy payment panel, numbered purchase and settlement sections, shaded product cards, selected payment option, and green Michigan trade-tax savings panel establish the hierarchy. Longer product lists become compact full-width rows. Dates remain MM/DD/YY. Snapshot-based amounts, full product names and tax treatment, all comparison totals, qualifications, and negative-equity/cash-credit distinctions are retained.
+
+Independent actual-PDF verification covers six fixtures with backgrounds enabled and disabled: ordinary finance, cash purchase, cash customer credit, negative equity paid at signing, 12 maximum-length products, and the 50-product limit with 120-character names and four payment options. All 12 PDFs fit one Letter page, retain the complete expected text and figures, and have no text outside the page. Normal and dense renders were visually reviewed. Background settings produce stable sizing. Normal product text is 7.5pt; the maximum-capacity stress fixture uses about 5.2pt product text and smaller reference/qualification text. That extreme one-page case is dense rather than a large-print document.
+
+The browser regression now checks actual PDF page counts, repeated printing with both background settings, all 50 names, four payment options, fitted content bounds, and return to editing. `pdf-lib` is a development-only test dependency. Chromium, mobile Chromium, and WebKit customer/export and automated accessibility checks pass. The print layout is hidden from the screen accessibility tree and removed when returning to the dealer view. Physical-printer and iPhone AirPrint settings remain manual acceptance items; browser paper, margin, and scaling overrides can affect output.
+
+Artifact evidence: `customer-print-redesign-qa/output-final/qa-report.json` and its PDF/PNG siblings in the task artifact folder. Publication is recorded by the pull request and Cloudflare deployment, not inferred from this document.
+
 ## Release boundaries
 
 Business owners must approve CRV/product tax treatment, the conservative document-fee basis, representative lender/DMS reconciliation, and any supported use beyond the documented Michigan purchase scope. Physical-device assistive-technology checks and a staff pilot remain in `ACCEPTANCE.md`.

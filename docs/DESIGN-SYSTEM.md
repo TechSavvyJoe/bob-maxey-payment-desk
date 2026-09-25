@@ -33,13 +33,15 @@ The interface keeps the established Ford-blue identity: a navy header and paymen
 - **Estimate review:** navigates to the complete customer ledger and focuses its heading. Export restrictions continue to reflect whether the estimate is complete.
 - **Product choices:** Service Contract, Gap, and Other retain the same amounts and explicit tax-treatment rules.
 - **Motion:** focus navigation respects reduced-motion preferences. Color is never the only status indication.
-- **Print:** decorative screen styles do not override the existing compact, monochrome customer document.
+- **Print:** use the dedicated Letter-page customer composition: branded masthead, navy payment panel, numbered purchase/settlement sections, green trade-tax savings, itemized products, and outlined payment options. The print portal is separate from the responsive screen layout. Preserve all financial figures, full product names, tax treatment, and qualifications; never hide or truncate them to fit.
 
 ## Validation and references
 
 The home-screen identity is an original, hand-drawn PD monogram in white on the navy-to-blue brand palette. The icon contains no small text. `public/payment-desk-icon.svg` is its vector master; `npm run icons:generate` exports the Apple 180px and manifest 192/512px PNGs plus the rounded browser favicon. PNGs are opaque, full-bleed squares; the operating system supplies the corner mask. The mark fits the centered 40%-radius maskable safe area. New image URLs separate the identity from older cached icons; existing iPhone shortcuts may need to be removed and added again if their old artwork persists.
 
 All form inputs, selects, and textareas use at least 16px text on mobile widths and touch-only devices, including landscape. This avoids iPhone focus-triggered form zoom. The viewport retains normal user scaling and pinch-to-zoom; print sizing is independent.
+
+Customer printing uses 10mm Letter-page margins and a 190mm composition. Up to six products use individual cards; longer lists use compact ledger rows. Font-ready measurement fits the actual content before printing while retaining full page width. Print styling includes an SVG payment-panel background so the white payment remains readable with browser background graphics disabled. The maximum supported 50 products retain every character, with smaller type when necessary. Verify actual PDF pagination and text completeness, not only screen screenshots or PDF byte size; native printer settings can override the requested paper/margins.
 
 Use the existing browser suite for populated, invalid, mobile, keyboard, and customer/export states. Test the start → review → edit flow, section shortcut focus, and helper/error descriptions. Visually inspect desktop and mobile layouts after CSS changes; automated contrast scans do not establish full accessibility conformance.
 
