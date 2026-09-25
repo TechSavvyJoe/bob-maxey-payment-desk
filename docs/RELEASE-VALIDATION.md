@@ -50,6 +50,14 @@ The browser regression now checks actual PDF page counts, repeated printing with
 
 Artifact evidence: `customer-print-redesign-qa/output-final/qa-report.json` and its PDF/PNG siblings in the task artifact folder. Publication is recorded by the pull request and Cloudflare deployment, not inferred from this document.
 
+## Customer estimate simplification and trade-cap verification
+
+At the owner's request, customer payment options and copy/share output now omit interest-charge amounts and total loan payments while retaining APR, term, monthly payment, and deal totals. The printed trade-tax panel and proposal assumptions identify the applicable deduction limit. Payment and tax calculations are unchanged.
+
+Michigan Treasury RAB 2022-17 and current MCL 205.51 were rechecked September 25, 2026: the qualifying motor-vehicle trade deduction is capped at $12,000 for 2026, so a sufficient taxable purchase with an $18,000 allowance saves $720 at 6%. The cap concerns the taxable-price deduction, not the trade allowance applied to the deal. Payoff does not reduce the deduction. Tests with $0/$12,000/$22,000 payoffs confirmed the same deduction and savings. Proposed SB997/SB998 had not been enacted at review time; their proposed removal of the cap was not applied.
+
+Sources: [Michigan Treasury trade-in bulletin](https://www.michigan.gov/taxes/rep-legal/rab/2022-revenue-administrative-bulletins/revenue-administrative-bulletin-2022-17), [current MCL 205.51](https://www.legislature.mi.gov/Laws/MCL?objectName=mcl-205-51).
+
 ## Release boundaries
 
 Business owners must approve CRV/product tax treatment, the conservative document-fee basis, representative lender/DMS reconciliation, and any supported use beyond the documented Michigan purchase scope. Physical-device assistive-technology checks and a staff pilot remain in `ACCEPTANCE.md`.

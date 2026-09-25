@@ -89,7 +89,7 @@ export default function CustomerPrintout({ snapshot, result }) {
 
       <div className="print-main-grid">
         <section className="print-purchase"><div className="print-section-heading"><h2><span>01</span> Your purchase</h2></div><PrintGroup group={{ ...transaction, title: 'Vehicle, taxes & fees', rows: purchaseRows }} />
-          <div className="print-tax-credit"><span>Michigan trade tax savings</span><strong>{money(result.tradeTaxSavings)}</strong><p>{money(result.taxableTotalBeforeCredit)} taxable price − {money(result.tradeTaxDeduction)} trade deduction = {money(result.taxBase)} taxed.</p></div>
+          <div className="print-tax-credit"><span>Michigan trade tax savings</span><strong>{money(result.tradeTaxSavings)}</strong><p>{money(result.taxableTotalBeforeCredit)} taxable price − {money(result.tradeTaxDeduction)} trade deduction = {money(result.taxBase)} taxed.</p><p>{result.policy.year} trade deduction limit: {result.tradeTaxCreditCap === null ? 'no cap' : money(result.tradeTaxCreditCap)} · {formatNumber(result.salesTaxRate * 100)}% tax.</p></div>
         </section>
         <section><div className="print-section-heading"><h2><span>02</span> {summary.isFinanced ? 'Trade & financing' : 'Trade & cash settlement'}</h2></div>{groups.filter(group => group.id !== 'transaction').map(group => <PrintGroup key={group.id} group={group} />)}</section>
       </div>
@@ -101,7 +101,7 @@ export default function CustomerPrintout({ snapshot, result }) {
       })}</ol></section> : null}
 
       {summary.isFinanced ? <section className="print-comparisons"><div className="print-section-heading"><h2><span>{productRows.length ? '04' : '03'}</span> Payment options</h2><small>Same deal and cash due · Subject to lender approval</small></div><div className="print-option-grid" style={{ gridTemplateColumns: `repeat(${snapshot.comparisonRows.length}, minmax(0, 1fr))` }}>{snapshot.comparisonRows.map(option => <div className={`print-option${option.selected ? ' print-option--selected' : ''}`} key={option.termMonths}>
-        <div className="print-option-term">{option.termMonths} months <span>{option.selected ? 'SELECTED' : `${formatNumber(option.apr)}% APR`}</span></div><p><strong>{money(option.monthlyPayment)}</strong><span>/mo</span></p><small>{option.selected ? `${formatNumber(option.apr)}% APR · ` : ''}Interest {money(option.totalInterest)}</small><small>Total payments {money(option.totalOfPayments)}</small>
+        <div className="print-option-term">{option.termMonths} months <span>{option.selected ? 'SELECTED' : `${formatNumber(option.apr)}% APR`}</span></div><p><strong>{money(option.monthlyPayment)}</strong><span>/mo</span></p>{option.selected ? <small>{formatNumber(option.apr)}% APR</small> : null}
       </div>)}</div></section> : null}
 
       <footer className="print-qualification"><h2>Estimate assumptions</h2><ul>{snapshot.assumptions.map(assumption => <li key={assumption}>{assumption}</li>)}</ul><p>{snapshot.qualification}</p><div className="print-document-reference"><span>{snapshot.reference} · App {snapshot.version}</span><strong>desking.mysoldlog.com</strong></div></footer>
