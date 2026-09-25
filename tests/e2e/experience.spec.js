@@ -95,8 +95,19 @@ test('copy fallback is explicit and share failure does not invoke print', async 
   expect(await page.evaluate(() => window.testPrintCount)).toBe(0);
 });
 
+test('add product keeps readable text on hover', async ({ page }, testInfo) => {
+  test.skip(testInfo.project.name === 'mobile', 'Touch devices do not expose pointer hover.');
+  const button = page.getByRole('button', { name: 'Add product', exact: true });
+  await button.hover();
+  await expect(button).toHaveCSS('color', 'rgb(4, 80, 180)');
+  const scan = await new AxeBuilder({ page }).include('#add-product').withRules(['color-contrast']).analyze();
+  expect(scan.violations).toEqual([]);
+});
+
 test('automated accessibility scan covers dealer, products, grid, and customer', async ({ page }) => {
   test.setTimeout(90000);
+  // Scan settled surfaces rather than controls moving during smooth section scrolling.
+  await page.emulateMedia({ reducedMotion: 'reduce' });
   await page.getByRole('button', { name: 'Add product', exact: true }).click();
   await page.getByLabel('Product 1 type').selectOption('other');
   await page.getByLabel('Target payment', { exact: true }).fill('350');
@@ -111,7 +122,7 @@ test('automated accessibility scan covers dealer, products, grid, and customer',
       await expect(page.getByRole('heading', { name: 'Your purchase estimate' })).toBeVisible();
     }
     const scan = await new AxeBuilder({ page }).withTags(['wcag2a', 'wcag2aa', 'wcag21aa', 'wcag22aa']).analyze();
-    expect(scan.violations.map(v => ({ id: v.id, description: v.description, nodes: v.nodes.map(n => n.target) })), surface).toEqual([]);
+    expect(scan.violations.map(v => ({ id: v.id, description: v.description, nodes: v.nodes.map(n => ({ target: n.target, failureSummary: n.failureSummary })) })), surface).toEqual([]);
   }
 });
 

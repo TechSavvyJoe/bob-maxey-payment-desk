@@ -2551,12 +2551,14 @@ input[type="checkbox"] { flex:0 0 auto; }
  .financing-panel__heading { min-height:48px; }
  .financing-panel__heading>svg { padding:4px; width:30px; height:30px; background:rgb(255 255 255 / 13%); border-radius:7px; }
  .term-buttons button,.segmented button { transition:background var(--motion),box-shadow var(--motion); }
+ /* Keep foreground/background changes together when switching header views. */
+ .view-toggle button { transition:none; }
  .products-empty { padding:15px 14px 3px; color:var(--ink-soft); font-size:.86rem; }
  .products-empty strong { font-weight:600; }
  .products-empty p { color:var(--muted); font-size:.8rem; line-height:1.5; margin:5px 0; }
  .option-row { border-color:#c3cede; background:#f7f9fd; }
  .add-item-button { background:#f2f7ff; color:var(--blue-dark); }
- .add-item-button:hover { background:#e5efff; }
+ .add-item-button:hover { background:#e5efff; color:var(--blue-dark); }
  .target-panel__heading { background:#064daa; }
  .suggestion__copy .suggestion-status { display:inline-block; padding:3px 7px; margin-top:5px; border-radius:5px; color:#40516b; background:#edf1f7; font-size:.72rem; }
  .suggestion__copy .suggestion-status.is-met { color:var(--green); background:var(--green-bg); }

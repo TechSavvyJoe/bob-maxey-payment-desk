@@ -18,6 +18,10 @@ The refinement adds compact, separately bordered target cards with a grid of res
 - A synthetic multi-product proposal was generated as an actual headless Chromium PDF without background graphics, then its pages were rendered and visually checked. Physical printer and operating-system share dialogs remain manual acceptance items.
 - Dependency installation reported no known npm vulnerabilities. The app uses local fonts and browser memory; no saved-deal backend or analytics service is introduced.
 
+## September 25 CI follow-up
+
+GitHub runs 36066241694 and 36143119550 exposed a WebKit contrast regression missed by the earlier local validation: the Add product hover background inherited white text from the original style. The hover now explicitly retains dark blue text. Header view buttons also switch their foreground and background together to avoid a low-contrast transition. A dedicated pointer-hover regression covers Chromium and WebKit, and accessibility diagnostics now include the failing contrast/target details. The multi-surface accessibility scan requests reduced motion so smooth section scrolling cannot move touch targets while axe measures them; no accessibility rules are disabled.
+
 ## Release boundaries
 
 Business owners must approve CRV/product tax treatment, the conservative document-fee basis, representative lender/DMS reconciliation, and any supported use beyond the documented Michigan purchase scope. Physical-device assistive-technology checks and a staff pilot remain in `ACCEPTANCE.md`.
