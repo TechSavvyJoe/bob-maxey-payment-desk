@@ -1,0 +1,99 @@
+/* A dedicated physical-page composition, independent of responsive screen CSS. */
+/* Clip only the unused pre-transform footprint. fitSheet sizes this box to all
+   painted content; PDF regressions verify every row and the complete footer. */
+.customer-print-root { position:fixed; left:-10000px; top:0; width:190mm; overflow:hidden; visibility:hidden; pointer-events:none; font-family:'IBM Plex Sans',Arial,sans-serif; }
+.customer-print-sheet { position:absolute; top:0; left:0; transform-origin:top left; width:190mm; color:#152746; background:#fff; font-size:11px; line-height:1.28; padding:0; }
+.customer-print-sheet * { box-sizing:border-box; }
+.customer-print-sheet :is(h1,h2,h3,p,dl,dd,ol,ul) { margin:0; }
+.print-masthead { display:flex; align-items:center; justify-content:space-between; border-top:4px solid #00095b; padding:13px 0 12px; }
+.print-brand { display:flex; align-items:center; gap:11px; }
+.print-brand img { display:block; border-radius:9px; }
+.print-brand strong { display:block; font-size:17px; letter-spacing:.08em; text-transform:uppercase; color:#00095b; }
+.print-brand span { display:block; font-size:8px; letter-spacing:.23em; color:#3c618e; margin-top:3px; }
+.print-date { text-align:right; }
+.print-date>span { display:block; color:#65748a; font-size:7px; letter-spacing:.13em; }
+.print-date>strong { display:block; font-size:13px; color:#00095b; margin:3px 0; }
+.print-date small { color:#65748a; font-size:8px; }
+.print-title { display:flex; align-items:center; justify-content:space-between; gap:12px; margin:3px 0 11px; }
+.print-title h1 { color:#00095b; font-size:27px; font-weight:500; line-height:1.1; letter-spacing:-.7px; }
+.print-title>span { padding:5px 8px; border:1px solid #a5bbd7; border-radius:4px; color:#0754ad; font-size:8px; font-weight:700; letter-spacing:.08em; white-space:nowrap; }
+.print-vehicle { display:flex; align-items:baseline; gap:12px; padding:8px 10px; background:#f0f4fa; border-left:3px solid #066fef; margin-bottom:12px!important; }
+.print-vehicle>span { font-size:7px; font-weight:600; letter-spacing:.08em; color:#526780; white-space:nowrap; }
+.print-vehicle strong { font-size:11px; font-weight:600; overflow-wrap:anywhere; }
+.print-hero { display:grid; grid-template-columns:1.1fr 1fr; gap:24px; position:relative; padding:15px 19px; margin-bottom:16px; color:#fff; border-radius:9px; isolation:isolate; }
+.print-hero-art { position:absolute; width:100%; height:100%; inset:0; z-index:-1; }
+.print-payment h2 { font-size:9px; font-weight:500; letter-spacing:.025em; color:#dce9ff; }
+.print-payment>p { display:flex; align-items:baseline; gap:5px; margin:3px 0!important; white-space:nowrap; }
+.print-payment>p>strong { font-size:36px; line-height:1.1; font-weight:600; letter-spacing:-.7px; font-variant-numeric:tabular-nums; }
+.print-payment>p>span { font-size:13px; color:#dce9ff; }
+.print-payment>div { font-size:10px; color:#e5efff; }
+.print-key-totals { display:flex; flex-direction:column; justify-content:center; border-left:1px solid #667ab4; padding-left:20px; }
+.print-key-totals>div { display:flex; align-items:baseline; justify-content:space-between; gap:12px; padding:5px 0; }
+.print-key-totals>div+div { border-top:1px solid #3c5da6; }
+.print-key-totals dt { font-size:9px; color:#dce9ff; }
+.print-key-totals dd { font-size:14px; font-weight:600; white-space:nowrap; font-variant-numeric:tabular-nums; }
+.print-main-grid { display:grid; grid-template-columns:1.05fr 1fr; align-items:start; gap:20px; }
+.print-section-heading { display:flex; align-items:center; justify-content:space-between; gap:10px; border-bottom:1px solid #acbfd9; padding-bottom:6px; margin-bottom:7px!important; color:#00095b; font-size:12px; font-weight:600; }
+.print-section-heading h2 { font-size:inherit; font-weight:inherit; }
+.print-section-heading span { display:inline-block; color:#066fef; font-size:9px; margin-right:6px; font-weight:600; }
+.print-section-heading small { color:#5d6f88; font-size:7.5px; font-weight:400; text-align:right; }
+.print-group { margin-bottom:11px; }
+.print-group h3 { font-size:9px; font-weight:600; color:#536680; margin-bottom:3px; }
+.print-row { display:grid; grid-template-columns:minmax(0,1fr) max-content; gap:10px; padding:4px 0; border-bottom:1px solid #e1e7f0; font-size:10.5px; }
+.print-row>span { overflow-wrap:anywhere; }
+.print-row>strong { color:#142d50; font-weight:600; font-variant-numeric:tabular-nums; white-space:nowrap; }
+.print-row--total { border-top:1px solid #94accb; border-bottom:0; margin-top:3px; padding:6px 7px; background:#f0f4fa; font-weight:600; color:#00095b; }
+.print-row--total>strong { color:#00095b; }
+.print-tax-credit { display:grid; grid-template-columns:1fr auto; gap:4px 12px; border:1px solid #9fc5bb; border-left:3px solid #15805e; padding:8px 10px; background:#f1f8f4; color:#17513e; margin-top:9px; }
+.print-tax-credit>span { font-size:9px; font-weight:600; }
+.print-tax-credit>strong { font-size:13px; font-variant-numeric:tabular-nums; }
+.print-tax-credit p { grid-column:1/-1; font-size:8px; color:#436757; }
+.print-products,.print-comparisons { margin-top:12px; }
+.print-products ol { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:5px 12px; list-style:none; padding:0; }
+.print-products li { border-left:2px solid #a7bddb; background:#f5f7fb; padding:5px 8px; }
+.print-product-name { display:block; overflow-wrap:anywhere; font-size:10px; line-height:1.22; }
+.print-products li>div { display:flex; align-items:baseline; justify-content:space-between; margin-top:2px; gap:5px; }
+.print-products li strong { font-size:10.5px; font-weight:600; color:#00095b; }
+.print-tax-label { color:#536680; font-size:7px; }
+.print-option-grid { display:grid; gap:8px; }
+.print-option { padding:8px; border:1px solid #c7d3e4; border-radius:5px; }
+.print-option--selected { border:1.5px solid #066fef; background:#eff5ff; padding:7.5px; }
+.print-option-term { display:flex; justify-content:space-between; align-items:baseline; gap:4px; font-weight:600; color:#173866; font-size:9px; }
+.print-option-term span { color:#0757b6; font-size:7px; }
+.print-option>p { margin:5px 0 4px!important; }
+.print-option>p strong { font-size:17px; font-weight:600; color:#00095b; font-variant-numeric:tabular-nums; }
+.print-option>p>span { margin-left:3px; font-size:8px; color:#536680; }
+.print-option>small { display:block; font-size:7.5px; color:#526680; overflow-wrap:anywhere; }
+.print-qualification { border-top:1px solid #91a9c7; margin-top:13px; padding-top:8px; color:#4e617a; font-size:8px; line-height:1.3; }
+.print-qualification>h2 { font-size:8.5px; color:#173866; font-weight:600; margin-bottom:4px; }
+.print-qualification ul { display:grid; grid-template-columns:1fr 1fr; gap:2px 20px; padding:0; list-style:none; }
+.print-qualification li { position:relative; padding-left:8px; }
+.print-qualification li::before { content:'•'; position:absolute; left:0; }
+.print-qualification>p { margin-top:5px!important; color:#253b58; font-weight:500; }
+.print-document-reference { display:flex; justify-content:space-between; gap:12px; border-top:1px solid #d7e0ec; padding-top:6px; margin-top:7px; font-size:7px; color:#65758b; }
+.print-document-reference strong { color:#173866; font-weight:500; }
+.print-incomplete { border:2px solid #a71f28; color:#921620; padding:9px; margin-bottom:10px; }
+.print-incomplete p { margin-top:3px!important; }
+.print-density--compact .print-products ol,.print-density--dense .print-products ol { grid-template-columns:1fr; gap:2px; }
+.print-density--compact .print-products li,.print-density--dense .print-products li { display:grid; grid-template-columns:minmax(0,1fr) 78px; gap:10px; padding:3px 6px; align-items:baseline; }
+.print-density--compact .print-products li>div,.print-density--dense .print-products li>div { margin-top:0; }
+.print-density--dense .print-products ol { gap:0; }
+.print-density--dense .print-products li { padding:1px 5px; line-height:1.05; border-bottom:1px solid #e1e7f0; }
+.print-density--dense .print-product-name { font-size:11px; line-height:1.05; }
+.print-density--dense .print-products li strong { font-size:11px; }
+.print-density--dense .print-masthead { padding-block:8px; }
+.print-density--dense .print-title h1 { font-size:23px; }
+.print-density--dense .print-hero { padding:10px 15px; margin-bottom:10px; }
+.print-density--dense .print-payment>p>strong { font-size:30px; }
+.print-density--dense .print-row { padding-block:2px; font-size:10px; }
+.print-density--dense .print-group { margin-bottom:6px; }
+.print-density--dense .print-products,.print-density--dense .print-comparisons { margin-top:8px; }
+.print-density--dense .print-option { padding:5px 7px; }
+.print-density--dense .print-option--selected { padding:4.5px 6.5px; }
+.print-density--dense .print-qualification { margin-top:9px; }
+@media print {
+  @page { size:letter; margin:10mm; }
+  body:has(>.customer-print-root)>#root { display:none!important; }
+  .customer-print-root { position:relative; left:auto; top:auto; visibility:visible; margin:0 auto; }
+  .customer-print-sheet { -webkit-print-color-adjust:exact; print-color-adjust:exact; }
+}

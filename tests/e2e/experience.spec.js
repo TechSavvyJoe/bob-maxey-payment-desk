@@ -1,5 +1,6 @@
 import { test, expect } from '@playwright/test';
 import AxeBuilder from '@axe-core/playwright';
+import { PDFDocument } from 'pdf-lib';
 
 test.beforeEach(async ({ page }) => {
   await page.goto('/');
@@ -44,12 +45,14 @@ test('product categories, explicit Other tax treatment, and complete customer ex
   expect(copied).toContain('does not restore this proposal');
   expect(copied).toContain('not a financing approval or contract');
   await page.emulateMedia({ media: 'print' });
-  await expect(page.locator('.proposal-qualification')).toBeVisible();
+  await expect(page.locator('.print-qualification')).toBeVisible();
   await expect(page.locator('.customer-actions')).toBeHidden();
-  await expect(page.locator('.proposal-dealership')).toBeVisible();
+  await expect(page.locator('.print-brand')).toContainText('Bob Maxey Ford');
+  await expect(page.locator('.customer-print-root')).toBeVisible();
   if (testInfo.project.name === 'chromium') {
     const pdf = await page.pdf({ path: testInfo.outputPath('customer-estimate.pdf'), printBackground: false, preferCSSPageSize: true });
     expect(pdf.byteLength).toBeGreaterThan(10000);
+    expect((await PDFDocument.load(pdf)).getPageCount()).toBe(1);
     await testInfo.attach('customer-estimate', { body: pdf, contentType: 'application/pdf' });
   }
 });
@@ -67,6 +70,57 @@ test('grid selection and customer navigation retain visible totals on every devi
   const summary = page.getByRole('complementary', { name: 'Selected estimate summary' });
   for (const text of ['Amount financed', 'Out-the-door total', 'Due at signing']) await expect(summary).toContainText(text);
   await expect(summary).toBeVisible();
+});
+
+test('maximum product estimate prints one complete page and returns to editing', async ({ page }, testInfo) => {
+  test.skip(testInfo.project.name !== 'chromium', 'Actual PDF pagination is available in Chromium.');
+  test.setTimeout(90000);
+  await page.emulateMedia({ reducedMotion: 'reduce' });
+  await page.locator('details.deal-details > summary').click();
+  await page.getByLabel('Vehicle / stock reference').fill('2026 Explorer / stock reference '.repeat(4).slice(0, 100));
+  await page.locator('details.deal-details > summary').click();
+  await page.getByRole('group', { name: 'Loan term', exact: true }).getByRole('button', { name: '48', exact: true }).click();
+  await page.getByLabel('Trade allowance', { exact: true }).fill('10000');
+  await page.getByLabel('Trade payoff', { exact: true }).fill('17000');
+  await page.getByLabel('Include negative equity in financing').uncheck();
+  const names = [];
+  for (let index = 0; index < 50; index++) {
+    const detail = index % 2 ? 'LONGUNBROKENPRODUCTDESCRIPTION' : ' wheel tire interior protection coverage ';
+    const name = `Product ${index + 1} ${detail.repeat(8)}`.slice(0, 120);
+    names.push(name);
+    await page.getByRole('button', { name: 'Add product', exact: true }).click();
+    const row = page.locator('.option-row').nth(index);
+    await row.getByLabel(`Product ${index + 1} type`, { exact: true }).selectOption('other');
+    await row.getByLabel(`Name for product or add-on ${index + 1}`, { exact: true }).fill(name);
+    await row.getByLabel(`Tax treatment for ${name}`, { exact: true }).selectOption(index % 2 ? 'taxable' : 'not-taxable');
+    await row.getByLabel(`${name} amount`, { exact: true }).fill(String(100 + index));
+  }
+  await page.getByRole('button', { name: 'Customer view', exact: true }).click();
+  await expect(page.getByRole('button', { name: 'Print', exact: true })).toBeEnabled();
+  await page.evaluate(() => document.fonts.ready);
+  for (const printBackground of [false, true]) {
+    const pdf = await page.pdf({ printBackground, preferCSSPageSize: true });
+    expect((await PDFDocument.load(pdf)).getPageCount()).toBe(1);
+    await testInfo.attach(`maximum-products-background-${printBackground}`, { body: pdf, contentType: 'application/pdf' });
+  }
+  await expect(page.locator('.print-product-name')).toHaveText(names);
+  await expect(page.locator('.print-option')).toHaveCount(4);
+  await expect(page.locator('.customer-print-sheet')).toContainText('Negative equity paid at signing');
+  await page.emulateMedia({ media: 'print' });
+  const layout = await page.locator('.customer-print-root').evaluate(root => {
+    const page = root.getBoundingClientRect();
+    const clipped = [...root.querySelectorAll('.print-product-name, .print-row, .print-option, .print-qualification')].some(element => {
+      const box = element.getBoundingClientRect();
+      return box.left < page.left - 1 || box.right > page.right + 1 || box.bottom > page.bottom + 1;
+    });
+    return { clipped, height: page.height };
+  });
+  expect(layout.clipped).toBe(false);
+  expect(layout.height).toBeLessThanOrEqual(953);
+  await page.emulateMedia({ media: 'screen' });
+  await page.getByRole('button', { name: 'Edit deal', exact: true }).click();
+  await expect(page.locator('.customer-print-root')).toHaveCount(0);
+  await expect(page.getByLabel('Selling price', { exact: true })).toHaveValue('30,000');
 });
 
 test('collapsed sections remove inputs from keyboard navigation and restore focus', async ({ page }) => {

@@ -5,6 +5,7 @@ import { APP_VERSION, BUILD_ID } from "../lib/release.js";
 import { EditIcon, PrintIcon, ShareIcon } from "./Icons.jsx";
 import ResultsPanel from "./ResultsPanel.jsx";
 import TradeTaxBreakdown from "./TradeTaxBreakdown.jsx";
+import CustomerPrintout from "./CustomerPrintout.jsx";
 
 const money = (value) => formatCurrency(value, { cents: true });
 const LedgerRow = ({ item, total = false }) => (
@@ -62,7 +63,7 @@ export default function CustomerView({ dealInput, result, gridRates, hasInputErr
   };
 
   return (
-    <div className="customer-layout">
+    <><div className="customer-layout">
       <main className="customer-content">
         <header className="proposal-identity">
           <p className="proposal-dealership">{snapshot.dealership}</p>
@@ -133,6 +134,6 @@ export default function CustomerView({ dealInput, result, gridRates, hasInputErr
         </footer>
       </main>
       <ResultsPanel customer dealInput={dealInput} result={result} hasInputErrors={hasInputErrors} />
-    </div>
+    </div><CustomerPrintout snapshot={snapshot} result={result} /></>
   );
 }
