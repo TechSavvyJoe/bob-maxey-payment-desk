@@ -132,7 +132,7 @@ export function createProposalSnapshot({ dealInput = {}, result, createdAt = new
   } : { jurisdiction: "Michigan", dealDate: result.dealDate ?? "Not specified" };
   const assumptions = [
     `${rule.jurisdiction ?? "Michigan"} purchase estimate; sales tax ${formatNumber(result.salesTaxRate * 100)}%.`,
-    `Trade allowance deducted from taxable price: ${money(result.tradeTaxDeduction)}; sales tax saved: ${money(result.tradeTaxSavings)}.`,
+    `Trade allowance deducted from taxable price: ${money(result.tradeTaxDeduction)}; sales tax saved: ${money(result.tradeTaxSavings)}. ${rule.year ?? result.policy?.year ?? 'Applicable'} trade deduction limit: ${result.tradeTaxCreditCap === null ? 'no cap' : money(result.tradeTaxCreditCap)}.`,
     "Product tax treatment and CRV dealer fee must be confirmed for this transaction.",
   ];
   if (rule.version) assumptions.push(`Rules ${rule.version}; effective ${formatShortDate(rule.effectiveFrom)} through ${formatShortDate(rule.effectiveTo)}; reviewed ${formatShortDate(rule.reviewedAt)}.`);
@@ -171,7 +171,7 @@ export function formatProposalText(snapshot, { calculatorUrl } = {}) {
   if (snapshot.vehicleReference) lines.push(`Vehicle / stock: ${snapshot.vehicleReference}`);
   if (!summary.canExport) lines.push("INCOMPLETE ESTIMATE", ...summary.reasons);
   lines.push("", `${summary.headline}: ${money(summary.headlineAmount)}${summary.isFinanced ? "/mo" : ""}`);
-  if (summary.isFinanced) lines.push(`${summary.termMonths} months at ${formatNumber(summary.apr)}% APR`, `Amount financed: ${money(summary.amountFinanced)}`, `Due at signing: ${money(summary.dueAtSigning)}`, `Estimated total interest: ${money(summary.totalInterest)}`, `Estimated total loan payments: ${money(summary.totalOfPayments)}`);
+  if (summary.isFinanced) lines.push(`${summary.termMonths} months at ${formatNumber(summary.apr)}% APR`, `Amount financed: ${money(summary.amountFinanced)}`, `Due at signing: ${money(summary.dueAtSigning)}`);
   for (const section of snapshot.groups) {
     lines.push("", section.title);
     section.rows.forEach((item) => lines.push(`${item.label}: ${money(item.amount)}`));

@@ -35,6 +35,7 @@ test('product categories, explicit Other tax treatment, and complete customer ex
   await expect(page.getByRole('button', { name: 'Copy summary' })).toBeEnabled();
   await expect(page.locator('.customer-ledger').filter({ hasText: 'Service Contract' })).toContainText('Accessories');
   await expect(page.getByRole('table', { name: 'Customer payment options' })).toContainText('Selected');
+  await expect(page.getByRole('table', { name: 'Customer payment options' })).not.toContainText(/interest|total (?:loan )?payments/i);
   await page.evaluate(() => Object.defineProperty(navigator, 'clipboard', { configurable: true, value: { writeText: async text => { window.testCopiedEstimate = text; } } }));
   await page.getByRole('button', { name: 'Copy summary' }).click();
   await expect(page.getByRole('status')).toContainText('copied');
@@ -44,11 +45,14 @@ test('product categories, explicit Other tax treatment, and complete customer ex
   expect(copied).toContain('Accessories');
   expect(copied).toContain('does not restore this proposal');
   expect(copied).toContain('not a financing approval or contract');
+  expect(copied).not.toMatch(/interest|total (?:loan )?payments/i);
   await page.emulateMedia({ media: 'print' });
   await expect(page.locator('.print-qualification')).toBeVisible();
   await expect(page.locator('.customer-actions')).toBeHidden();
   await expect(page.locator('.print-brand')).toContainText('Bob Maxey Ford');
   await expect(page.locator('.customer-print-root')).toBeVisible();
+  await expect(page.locator('.customer-print-root')).not.toContainText(/interest|total (?:loan )?payments/i);
+  await expect(page.locator('.print-tax-credit')).toContainText('2026 trade deduction limit: $12,000.00');
   if (testInfo.project.name === 'chromium') {
     const pdf = await page.pdf({ path: testInfo.outputPath('customer-estimate.pdf'), printBackground: false, preferCSSPageSize: true });
     expect(pdf.byteLength).toBeGreaterThan(10000);

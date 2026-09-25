@@ -113,17 +113,16 @@ export default function CustomerView({ dealInput, result, gridRates, hasInputErr
             </div>
             <div className="customer-options__table" role="table" aria-label="Customer payment options">
               <div className="customer-options__row is-header" role="row">
-                <span role="columnheader">Term</span><span role="columnheader">APR</span><span role="columnheader">Payment & estimated interest</span>
+                <span role="columnheader">Term</span><span role="columnheader">APR</span><span role="columnheader">Monthly payment</span>
               </div>
               {snapshot.comparisonRows.map((option) => (
                 <div className={"customer-options__row" + (option.selected ? " is-selected" : "")} key={option.termMonths} role="row">
                   <span role="cell">{option.termMonths} months{option.selected ? <strong className="selected-option-label"> ✓ Selected</strong> : null}</span>
                   <span role="cell">{formatNumber(option.apr)}%</span>
-                  <span role="cell"><strong>{money(option.monthlyPayment)}/mo</strong><small className="option-interest">Estimated interest {money(option.totalInterest)}</small><small className="option-interest">Total loan payments {money(option.totalOfPayments)}</small></span>
+                  <span role="cell"><strong>{money(option.monthlyPayment)}/mo</strong></span>
                 </div>
               ))}
             </div>
-            <p className="section-note">Interest is an analytical estimate. The lender's payment schedule and final installment may differ.</p>
           </section>
         ) : null}
         <footer className="proposal-qualification">
