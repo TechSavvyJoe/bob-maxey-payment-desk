@@ -2787,3 +2787,9 @@ input[type="checkbox"] { flex:0 0 auto; }
  .customer-ledger .trade-tax-breakdown dl,.customer-ledger .trade-tax-breakdown p { display:none; }
  .trade-tax-print { display:block; font-size:9px; line-height:1.35; }
 }
+
+/* Keep touch form text readable and prevent iOS focus zoom without disabling pinch zoom.
+   The pointer query also covers phones in landscape and larger touch-only tablets. */
+@media screen and (max-width:800px), screen and (hover:none) and (pointer:coarse) {
+ .app-frame :is(input,select,textarea) { font-size:max(16px,1rem); }
+}
