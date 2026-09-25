@@ -50,11 +50,11 @@ function resultLine(deal) {
  * per-suggestion `difference` and `remainingGap` use the selected target units.
  */
 export function buildSuggestions({ dealInput = {}, result: suppliedResult, targetType = 'payment', targetValue, gridRates = {} }) {
-  if (!['payment', 'outTheDoor', 'amountFinanced'].includes(targetType)) {
+  if (!['payment', 'outTheDoor', 'amountFinanced', 'cashDue'].includes(targetType)) {
     throw new RangeError('Unsupported target type.');
   }
-  const metric = targetType === 'outTheDoor' ? 'outTheDoor' : 'amountFinanced';
-  const actualMetric = targetType === 'payment' ? 'monthlyPayment' : targetType;
+  const metric = targetType === 'cashDue' ? 'dueAtSigning' : targetType === 'outTheDoor' ? 'outTheDoor' : 'amountFinanced';
+  const actualMetric = targetType === 'payment' ? 'monthlyPayment' : targetType === 'cashDue' ? 'dueAtSigning' : targetType;
   const initial = {
     direction: 'reduce', gap: 0, metric, targetMetric: 0,
     targetPaymentSolution: null, suggestions: [], alreadyMet: false,
@@ -71,8 +71,10 @@ export function buildSuggestions({ dealInput = {}, result: suppliedResult, targe
     return { ...initial, status: 'invalid', error: error.message };
   }
 
-  const result = suppliedResult ?? calculateDeal(dealInput);
-  if (result.salePrice <= 0 || (!result.isFinanced && targetType !== 'outTheDoor')) {
+  const currentResult = suppliedResult ?? calculateDeal(dealInput);
+  const findingPrice = currentResult.salePrice <= 0;
+  const result = findingPrice ? calculateDeal({ ...dealInput, salePrice: 0.01 }) : currentResult;
+  if ((!result.isFinanced && !['outTheDoor', 'cashDue'].includes(targetType)) || (result.isFinanced && targetType === 'cashDue')) {
     return { ...initial, status: 'incomplete', error: 'Enter a selling price and select an applicable target type.' };
   }
   const base = {
@@ -87,7 +89,7 @@ export function buildSuggestions({ dealInput = {}, result: suppliedResult, targe
     optionalItems: result.optionalItems,
   };
   const actualCents = result.cents[actualMetric];
-  if (actualCents === targetCents) {
+  if (!findingPrice && actualCents === targetCents) {
     return {
       ...initial, targetMetric: result[metric], alreadyMet: true,
       withinTarget: true, status: 'already-met',
@@ -133,7 +135,7 @@ export function buildSuggestions({ dealInput = {}, result: suppliedResult, targe
   };
   const addPatch = (suggestion, note) => add(suggestion, calculateDeal({ ...base, ...suggestion.patch }), note);
 
-  if (targetType !== 'outTheDoor') {
+  if (!findingPrice && ['payment', 'amountFinanced'].includes(targetType)) {
     bounded('Cash-down option', () => {
       const nextCents = direction === 'reduce'
         ? result.cents.cashDown + gapCents
@@ -151,20 +153,20 @@ export function buildSuggestions({ dealInput = {}, result: suppliedResult, targe
   bounded('Selling-price option', () => {
     const solved = solveSalePriceForTarget(base, {
       target: targetMetric, metric, minSalePrice: 0.01,
-      maxSalePrice: fromCents(direction === 'increase'
+      maxSalePrice: findingPrice ? undefined : fromCents(direction === 'increase'
         ? Math.min(maxInputCents, result.cents.salePrice + gapCents * 2 + 1_000_000)
         : result.cents.salePrice),
     });
     const delta = solved.cents.salePrice - result.cents.salePrice;
     addPatch({
-      id: 'sale-price', title: delta < 0 ? 'Reduce selling price' : 'Selling-price room',
-      value: `${delta < 0 ? '−' : '+'}${money(fromCents(Math.abs(delta)))}`,
-      amount: fromCents(Math.abs(delta)), patch: { salePrice: solved.salePrice },
+      id: 'sale-price', title: findingPrice ? 'Required selling price' : delta < 0 ? 'Reduce selling price' : 'Selling-price room',
+      value: findingPrice ? money(solved.salePrice) : `${delta < 0 ? '−' : '+'}${money(fromCents(Math.abs(delta)))}`,
+      amount: findingPrice ? solved.salePrice : fromCents(Math.abs(delta)), patch: { salePrice: solved.salePrice },
       iconDirection: delta < 0 ? 'down' : 'up',
     }, 'Subject to dealer approval.');
   });
 
-  if (direction === 'increase' && gapCents <= maxInputCents && base.optionalItems.length < CALCULATION_LIMITS.maxOptionalItems) {
+  if (!findingPrice && direction === 'increase' && gapCents <= maxInputCents && base.optionalItems.length < CALCULATION_LIMITS.maxOptionalItems) {
     const amount = fromCents(gapCents);
     const previewDeal = calculateDeal({
       ...base, optionalItems: [...base.optionalItems, { name: 'Product allowance', amount, taxable: false }],
@@ -175,7 +177,7 @@ export function buildSuggestions({ dealInput = {}, result: suppliedResult, targe
     }, previewDeal, 'Non-taxable estimate only; select an applicable product and verify its tax and lender eligibility.');
   }
 
-  if (targetType !== 'outTheDoor' && direction === 'reduce') {
+  if (!findingPrice && targetType !== 'outTheDoor' && direction === 'reduce') {
     bounded('Trade option', () => {
       const solved = solveCentValueForTarget({
         target: targetMetric, min: result.tradeAllowance,
@@ -183,7 +185,7 @@ export function buildSuggestions({ dealInput = {}, result: suppliedResult, targe
         direction: 'decreasing',
         evaluate: (candidateCents) => {
           const deal = calculateDeal({ ...base, tradeAllowance: fromCents(candidateCents) });
-          return { metricCents: deal.cents.amountFinanced, result: deal };
+          return { metricCents: deal.cents[metric], result: deal };
         },
       });
       const delta = solved.cents.value - result.cents.tradeAllowance;
@@ -194,7 +196,7 @@ export function buildSuggestions({ dealInput = {}, result: suppliedResult, targe
     });
   }
 
-  if (direction === 'reduce') {
+  if (!findingPrice && direction === 'reduce') {
     const itemIndex = base.optionalItems
       .map((item, index) => ({ cents: toCents(item.amount), index }))
       .filter((item) => item.cents > 0).sort((a, b) => b.cents - a.cents)[0]?.index;
@@ -214,7 +216,7 @@ export function buildSuggestions({ dealInput = {}, result: suppliedResult, targe
     });
   }
 
-  if (targetType === 'payment' && direction === 'reduce') {
+  if (!findingPrice && targetType === 'payment' && direction === 'reduce') {
     const term = RATE_GRID_DEFAULTS.termMonths.filter((months) => months > result.termMonths)
       .map((months) => {
         const apr = normalizeApr(gridRates[months] ?? result.apr);
@@ -234,7 +236,8 @@ export function buildSuggestions({ dealInput = {}, result: suppliedResult, targe
 
   return {
     ...initial, direction, gap: fromCents(gapCents), targetMetric, targetPaymentSolution,
-    withinTarget: actualCents <= targetCents, suggestions, limitations,
+    withinTarget: !findingPrice && actualCents <= targetCents,
+    suggestions: suggestions.sort((a, b) => Number(b.id === 'sale-price') - Number(a.id === 'sale-price')), limitations,
     status: suggestions.length ? 'ready' : 'unavailable',
   };
 }

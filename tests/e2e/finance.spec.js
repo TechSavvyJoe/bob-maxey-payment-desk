@@ -54,6 +54,30 @@ test('successive payment targets from blank down preserve the deal and reach bot
   await expect(page.getByRole('heading', { name: 'Something went wrong', exact: true })).toHaveCount(0);
 });
 
+test('roll backs out an unknown selling price then supports a cash target and undo', async ({ page }) => {
+  await page.getByRole('textbox', { name: 'Selling price', exact: true }).fill('30000');
+  await page.getByRole('textbox', { name: 'Selling price', exact: true }).fill('');
+  await target(page).fill('450');
+  await expect(page.locator('.suggestion').first()).toContainText('Required selling price');
+  await expect(page.locator('.suggestion-price')).toContainText('Resulting selling price');
+  await page.getByRole('button', { name: 'Apply Required selling price', exact: true }).click();
+  await expect(selectedPayment(page)).toHaveText('$450.00');
+  const price = page.getByRole('textbox', { name: 'Selling price', exact: true });
+  const financedPrice = await price.inputValue();
+  await page.getByRole('button', { name: 'Cash', exact: true }).click();
+  await page.getByRole('textbox', { name: 'Trade allowance', exact: true }).fill('8000');
+  await page.getByRole('textbox', { name: 'Trade payoff', exact: true }).fill('2500');
+  await page.getByRole('textbox', { name: 'Target cash due after trade', exact: true }).fill('15000');
+  const priceScenario = page.locator('.suggestion').filter({ has: page.getByRole('heading', { name: 'Reduce selling price', exact: true }) });
+  await expect(priceScenario).toContainText('Cash due $15,000.00');
+  await priceScenario.getByRole('button', { name: 'Apply Reduce selling price', exact: true }).click();
+  await expect(page.locator('.target-current')).toContainText('$15,000');
+  await page.getByRole('button', { name: 'Undo adjustment', exact: true }).click();
+  await expect(price).toHaveValue(financedPrice);
+  await page.getByRole('button', { name: 'Finance', exact: true }).click();
+  await expect(target(page)).toHaveValue('450');
+});
+
 test('a later payoff edit expires Undo without removing the new payoff', async ({ page }) => {
   await enterVehicle(page);
   await applyCashTarget(page, 450);

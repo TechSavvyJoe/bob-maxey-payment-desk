@@ -121,7 +121,44 @@ test('blank, invalid, excessive and missing-vehicle targets give safe structured
     assert.ok(solution.error);
     assert.deepEqual(solution.suggestions, []);
   }
-  assert.equal(suggest({ ...initial, salePrice: '' }, 450).status, 'incomplete');
+  assert.equal(suggest({ ...initial, salePrice: '' }, 450).status, 'ready');
+});
+
+test('unknown selling price can be backed out from payment, OTD, finance, or cash due', () => {
+  for (const [targetType, targetValue, metric, dealType] of [
+    ['payment', 450, 'monthlyPayment', 'finance'],
+    ['outTheDoor', 25000, 'outTheDoor', 'finance'],
+    ['amountFinanced', 22000, 'amountFinanced', 'finance'],
+    ['cashDue', 20000, 'dueAtSigning', 'cash'],
+  ]) {
+    const deal = { ...initial, salePrice: '', dealType, tradeAllowance: 8000, tradePayoff: 2500, cashDown: 1000,
+      optionalItems: [{ name: 'Service Contract', amount: 1200, taxable: false }] };
+    const solution = suggest(deal, targetValue, targetType);
+    assert.equal(solution.suggestions.length, 1);
+    const price = solution.suggestions[0];
+    assert.equal(price.id, 'sale-price');
+    assert.ok(price.patch.salePrice > 0);
+    const applied = calculateDeal(apply(deal, price));
+    assert.deepEqual(applied.cents, price.previewDeal.cents);
+    assert.ok(Math.abs(applied.cents[metric] - toCents(targetValue)) <= 1, `${targetType}: ${applied[metric]}`);
+    assert.equal(applied.isComplete, true);
+  }
+});
+
+test('cash due scenarios account for trade payoff and never treat cash down as a discount', () => {
+  for (const tradePayoff of [2500, 15000]) {
+    const deal = { ...initial, dealType: 'cash', tradeAllowance: 8000, tradePayoff, cashDown: 1000 };
+    const solution = suggest(deal, 20000, 'cashDue');
+    assert.equal(solution.suggestions[0].id, 'sale-price');
+    assert.equal(solution.suggestions.some(item => ['cash-down', 'term', 'apr'].includes(item.id)), false);
+    for (const scenario of solution.suggestions) {
+      assert.deepEqual(calculateDeal(apply(deal, scenario)).cents, scenario.previewDeal.cents);
+      assert.ok(Math.abs(scenario.previewDeal.dueAtSigning - 20000) <= .01);
+    }
+    assert.deepEqual(suggest({ ...deal, cashDown: 9000 }, 20000, 'cashDue').suggestions.map(s => s.patch), solution.suggestions.map(s => s.patch));
+  }
+  assert.equal(suggest(initial, 20000, 'cashDue').status, 'incomplete');
+  assert.equal(suggest({ ...initial, dealType: 'cash' }, 450, 'payment').status, 'incomplete');
 });
 
 test('price-only partial solutions retain a positive vehicle and the lower doc fee', () => {

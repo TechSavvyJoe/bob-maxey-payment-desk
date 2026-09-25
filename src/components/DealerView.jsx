@@ -82,8 +82,8 @@ export default function DealerView({
                 onChange={(value) => updateField("dealType", value)}
                 options={[{ label: "Finance", value: "finance" }, { label: "Cash", value: "cash" }]} />
             </div>
-            <FieldRow htmlFor="sale-price" label="Selling price">
-              <MoneyInput ariaLabel="Selling price" id="sale-price" required value={dealInput.salePrice}
+            <FieldRow htmlFor="sale-price" label="Selling price" helper="Unknown? Use Roll to a target below.">
+              <MoneyInput ariaLabel="Selling price" id="sale-price" value={dealInput.salePrice}
                 onChange={(value) => updateField("salePrice", value)} />
             </FieldRow>
           </DealSection>

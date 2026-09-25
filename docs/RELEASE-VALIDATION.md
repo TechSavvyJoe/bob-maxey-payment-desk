@@ -22,6 +22,12 @@ The refinement adds compact, separately bordered target cards with a grid of res
 
 GitHub runs 36066241694 and 36143119550 exposed a WebKit contrast regression missed by the earlier local validation: the Add product hover background inherited white text from the original style. The hover now explicitly retains dark blue text. Header view buttons also switch their foreground and background together to avoid a low-contrast transition. A dedicated pointer-hover regression covers Chromium and WebKit, and accessibility diagnostics now include the failing contrast/target details. The multi-surface accessibility scan requests reduced motion so smooth section scrolling cannot move touch targets while axe measures them; no accessibility rules are disabled.
 
+## Roll to a target
+
+Salespeople can enter a payment, out-the-door total, or amount-financed target on a financed deal, or cash due after trade / out-the-door on a cash deal. The selling-price scenario appears first and every scenario displays its resulting selling price. A blank selling price returns a price-only scenario using the entered taxes, fees, products, trade/payoff, cash down, and loan terms. Applying it still requires a complete calculated estimate and confirmed product tax treatment. Cash due means the final cash purchase balance after trade equity or payoff, not a second deduction for cash down. Each scenario changes one input; Apply recalculates the other options and supports Undo. Cent rounding can leave an explicitly displayed difference from a requested target.
+
+Validation includes reverse-price scenarios for all four targets, positive and negative trade equity on cash purchases, preview/apply reconciliation, and a browser flow from unknown price to payment, cash target, Apply, and Undo. The first full local browser run passed 57 checks with 6 project-specific skips; a final targeted recheck covers clearing an existing price before solving.
+
 ## Release boundaries
 
 Business owners must approve CRV/product tax treatment, the conservative document-fee basis, representative lender/DMS reconciliation, and any supported use beyond the documented Michigan purchase scope. Physical-device assistive-technology checks and a staff pilot remain in `ACCEPTANCE.md`.

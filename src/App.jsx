@@ -27,7 +27,7 @@ export default function App() {
   const [state, dispatch] = useReducer(deskReducer, undefined, createDeskState);
   const { deal: dealInput, view, mobileGridOpen, gridRates, gridDownPayments, lastRoll, resetCount } = state;
   const [targetType, setTargetType] = useState('payment');
-  const [targetValues, setTargetValues] = useState({ payment: '', outTheDoor: '', amountFinanced: '' });
+  const [targetValues, setTargetValues] = useState({ payment: '', outTheDoor: '', amountFinanced: '', cashDue: '' });
   const [solverExpanded, setSolverExpanded] = useState(false);
   const [accordions, setAccordions] = useState(allOpen);
   const [contextOpen, setContextOpen] = useState(false);
@@ -68,7 +68,7 @@ export default function App() {
     });
   };
   const updateField = (field, value) => {
-    if (field === 'dealType' && value === 'cash') setTargetType('outTheDoor');
+    if (field === 'dealType') setTargetType(value === 'cash' ? 'cashDue' : 'payment');
     dispatch({ type: 'field', field, value });
   };
   const changeView = next => {
@@ -88,7 +88,7 @@ export default function App() {
   const resetDeal = () => {
     if (hasDeal && !window.confirm('Reset this deal? All figures, trade, and products will be cleared.')) return;
     dispatch({ type: 'reset' });
-    setTargetType('payment'); setTargetValues({ payment: '', outTheDoor: '', amountFinanced: '' });
+    setTargetType('payment'); setTargetValues({ payment: '', outTheDoor: '', amountFinanced: '', cashDue: '' });
     setSolverExpanded(false); setAccordions(allOpen()); setFieldErrors({}); setContextOpen(false);
     focusDestination('worksheet-heading');
   };
