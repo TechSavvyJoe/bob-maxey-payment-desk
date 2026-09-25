@@ -5,6 +5,7 @@ import DealSection from "./DealSection.jsx";
 import { FieldRow, MoneyInput, PercentInput, SegmentedControl } from "./Fields.jsx";
 import { AddCircleIcon, CarIcon, PercentIcon, PlusIcon, ReceiptIcon, TradeIcon, TrashIcon } from "./Icons.jsx";
 import TargetSolver from "./TargetSolver.jsx";
+import TradeTaxBreakdown from "./TradeTaxBreakdown.jsx";
 import { useFieldValidation } from "./ValidationContext.jsx";
 
 const categoryFor = (item) => item.category || (
@@ -141,6 +142,7 @@ export default function DealerView({
           <DealSection id="taxes-fees" className="deal-section--taxes" title="Taxes & registration" icon={ReceiptIcon}
             open={accordions.taxes} onToggle={() => toggleAccordion("taxes")}
             summary={`${formatWholeCurrency(taxesAndFees)} total`}>
+            <TradeTaxBreakdown result={result} />
             <dl className="fixed-fees">
               <div><dt>Michigan sales tax <small>{CALCULATION_DEFAULTS.salesTaxRate * 100}%</small></dt><dd>{formatCurrency(result.salesTax)}</dd></div>
               <div><dt>Document fee <small>Taxable</small></dt><dd>{formatCurrency(result.fees.documentFee)}</dd></div>

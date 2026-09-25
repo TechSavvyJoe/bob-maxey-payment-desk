@@ -93,6 +93,23 @@ test('matrix 2: down only reduces amount financed and 0% interest stays zero', (
   assert.equal(deal.dueAtSigning, 3_000);
 });
 
+test('trade deduction and tax savings explain the cap and zero-tax floor in cents', () => {
+  for (const dealType of ['cash', 'finance']) {
+    for (const [salePrice, tradeAllowance, deduction, savings] of [
+      [30000, 10000, 10000, 600], [30000, 18000, 12000, 720], [1000, 18000, 1084, 65.04],
+    ]) {
+      const input = { dealDate: '2026-09-25', dealType, salePrice, tradeAllowance, tradePayoff: 20000 };
+      const deal = calculateDeal(input);
+      const withoutTrade = calculateDeal({ ...input, tradeAllowance: 0 });
+      assert.equal(deal.tradeTaxDeduction, deduction);
+      assert.equal(deal.tradeTaxSavings, savings);
+      assert.equal(deal.cents.tradeTaxSavings, withoutTrade.cents.salesTax - deal.cents.salesTax);
+      assert.equal(deal.cents.taxBase, deal.cents.taxableTotalBeforeCredit - deal.cents.tradeTaxDeduction);
+      assert.ok(deal.salesTax >= 0);
+    }
+  }
+});
+
 test('matrix 3: trade tax credit is capped at $12,000 and uses allowance, not payoff', () => {
   const deal = calculateDeal({
     salePrice: 40_000,

@@ -132,7 +132,7 @@ export function createProposalSnapshot({ dealInput = {}, result, createdAt = new
   } : { jurisdiction: "Michigan", dealDate: result.dealDate ?? "Not specified" };
   const assumptions = [
     `${rule.jurisdiction ?? "Michigan"} purchase estimate; sales tax ${formatNumber(result.salesTaxRate * 100)}%.`,
-    `Trade tax credit applied: ${money(result.tradeTaxCredit)}; based on eligible trade allowance.`,
+    `Trade allowance deducted from taxable price: ${money(result.tradeTaxDeduction)}; sales tax saved: ${money(result.tradeTaxSavings)}.`,
     "Product tax treatment and CRV dealer fee must be confirmed for this transaction.",
   ];
   if (rule.version) assumptions.push(`Rules ${rule.version}; effective ${formatShortDate(rule.effectiveFrom)} through ${formatShortDate(rule.effectiveTo)}; reviewed ${formatShortDate(rule.reviewedAt)}.`);

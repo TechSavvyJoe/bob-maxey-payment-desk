@@ -4,6 +4,7 @@ import { createProposalSnapshot, formatProposalText } from "../lib/proposal.js";
 import { APP_VERSION, BUILD_ID } from "../lib/release.js";
 import { EditIcon, PrintIcon, ShareIcon } from "./Icons.jsx";
 import ResultsPanel from "./ResultsPanel.jsx";
+import TradeTaxBreakdown from "./TradeTaxBreakdown.jsx";
 
 const money = (value) => formatCurrency(value, { cents: true });
 const LedgerRow = ({ item, total = false }) => (
@@ -100,6 +101,7 @@ export default function CustomerView({ dealInput, result, gridRates, hasInputErr
             <h2>{section.title}</h2>
             {section.rows.map((item) => <LedgerRow item={item} key={item.id} />)}
             <LedgerRow item={section.total} total />
+            {section.id === 'transaction' ? <TradeTaxBreakdown result={result} /> : null}
           </section>
         ))}</div>
         {snapshot.summary.isFinanced ? (

@@ -181,6 +181,23 @@ test('calendar supports keyboard selection, month navigation, and invalid-date r
   await expect(date).toHaveValue('10/01/26');
 });
 
+test('Michigan trade deduction and tax savings stay visible through payoff changes and customer view', async ({ page }) => {
+  await enterVehicle(page);
+  await page.getByLabel('Trade allowance', { exact: true }).fill('10000');
+  const tax = page.getByRole('region', { name: 'Michigan trade tax calculation' });
+  await expect(tax).toContainText('−$10,000.00');
+  await expect(tax).toContainText('$20,314.00');
+  await expect(tax).toContainText('$600.00');
+  await page.getByLabel('Trade payoff', { exact: true }).fill('15000');
+  await expect(tax).toContainText('$600.00');
+  await page.getByLabel('Trade allowance', { exact: true }).fill('18000');
+  await expect(tax).toContainText('−$12,000.00');
+  await expect(tax).toContainText('$720.00');
+  await page.getByRole('button', { name: 'Customer view', exact: true }).click();
+  await expect(tax).toContainText('$720.00');
+  await expect(page.getByRole('button', { name: 'Print', exact: true })).toBeEnabled();
+});
+
 test('letters in a price never become a different number or an exportable proposal', async ({ page }) => {
   await enterVehicle(page);
   const price = page.getByRole('textbox', { name: 'Selling price', exact: true });

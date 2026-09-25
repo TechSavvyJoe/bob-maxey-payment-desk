@@ -350,6 +350,8 @@ export function calculateDeal(input = {}) {
     salePriceCents + taxableFixedFeesCents + taxableOptionsCents;
   const taxBaseCents = Math.max(0, taxableTotalBeforeCreditCents - tradeTaxCreditCents);
   const salesTaxCents = roundRatio(BigInt(taxBaseCents) * BigInt(policy.salesTaxBasisPoints), 10_000);
+  const tradeTaxDeductionCents = taxableTotalBeforeCreditCents - taxBaseCents;
+  const tradeTaxSavingsCents = roundRatio(BigInt(taxableTotalBeforeCreditCents) * BigInt(policy.salesTaxBasisPoints), 10_000) - salesTaxCents;
 
   const outTheDoorCents =
     salePriceCents +
@@ -417,6 +419,8 @@ export function calculateDeal(input = {}) {
     tradeAllowance: tradeAllowanceCents,
     tradePayoff: tradePayoffCents,
     tradeTaxCredit: tradeTaxCreditCents,
+    tradeTaxDeduction: tradeTaxDeductionCents,
+    tradeTaxSavings: tradeTaxSavingsCents,
     tradeEquity: tradeEquityCents,
     positiveEquity: positiveEquityCents,
     negativeEquity: negativeEquityCents,
@@ -476,6 +480,8 @@ export function calculateDeal(input = {}) {
     upfrontAmount: fromCents(upfrontAmountCents),
     fees: dollarsForCentsObject(feeCents),
     taxableTotalBeforeCredit: fromCents(taxableTotalBeforeCreditCents),
+    tradeTaxDeduction: fromCents(tradeTaxDeductionCents),
+    tradeTaxSavings: fromCents(tradeTaxSavingsCents),
     taxBase: fromCents(taxBaseCents),
     salesTax: fromCents(salesTaxCents),
     outTheDoor: fromCents(outTheDoorCents),
