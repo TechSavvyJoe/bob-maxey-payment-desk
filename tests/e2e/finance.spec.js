@@ -174,6 +174,17 @@ test('calendar supports keyboard selection, month navigation, and invalid-date r
   await dialog.getByRole('button', { name: 'Next month' }).click();
   await dialog.getByRole('button', { name: 'Thursday, October 1, 2026', exact: true }).click();
   await expect(date).toHaveValue('10/01/26');
+  await date.fill('02/28/26');
+  await open.click();
+  await page.keyboard.press('ArrowRight');
+  await page.keyboard.press('Enter');
+  await expect(date).toHaveValue('03/01/26');
+  await open.click();
+  await dialog.getByRole('combobox', { name: 'Calendar year' }).selectOption('2028');
+  await dialog.getByRole('combobox', { name: 'Calendar month' }).selectOption('1');
+  await dialog.getByRole('button', { name: 'Tuesday, February 29, 2028', exact: true }).click();
+  await expect(date).toHaveValue('02/29/28');
+  await date.fill('10/01/26');
   await open.click();
   await page.keyboard.press('Escape');
   await expect(dialog).not.toBeVisible();

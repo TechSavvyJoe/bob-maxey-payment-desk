@@ -2,7 +2,13 @@
 
 Published to Cloudflare Pages on September 24, 2026. The selected address **https://desking.mysoldlog.com/** went live on September 25, 2026. Its GoDaddy CNAME is verified on both authoritative nameservers, HTTPS returns 200, and the application was visually verified in the user's work browser. The existing root-domain DNS and Firebase hosting are unchanged.
 
-## Current deployment
+## Production service
+
+The production service is `https://desking.mysoldlog.com/`, hosted by the existing Cloudflare Pages project `mysoldlog-desking`. This is a Direct Upload project: merging GitHub `main` updates GitHub Pages through its workflow, but does not update Cloudflare. For every release, build the reviewed commit and upload only `dist` to the existing project with production branch label `main` and the full source commit in deployment metadata. Verify the custom-domain build identifier against that source after publishing.
+
+The latest exact release commit, successful CI runs, and Cloudflare deployment URL are recorded in [pull request #10](https://github.com/TechSavvyJoe/bob-maxey-payment-desk/pull/10) and Cloudflare deployment metadata. The launch identifiers below are historical and must not be treated as the latest release.
+
+## Initial domain launch — historical evidence
 
 - Project: `mysoldlog-desking`, in the verified Cloudflare account.
 - Live address: `https://desking.mysoldlog.com/`.

@@ -1,12 +1,12 @@
-# Production-readiness validation — September 24, 2026
+# Production-readiness validation — September 25, 2026
 
-The September 24 audit was implemented on `codex/production-ready-payment-desk`. This is a release candidate for dealership review. It has not been merged to main or published.
+The September 24 audit was implemented on `codex/production-ready-payment-desk`. The application was published to Cloudflare Pages on September 24 and to `https://desking.mysoldlog.com/` on September 25. Subsequent production releases include reverse targets, professional customer printouts, calendar selection, and visible Michigan trade tax savings. Pull request #10 records final source, CI, merge, and deployment evidence; deployment status must not be inferred from this document alone.
 
 The visual direction retains the established Ford-blue identity: raised individual section cards, shaded icon headers, bold labels, a complete navy payment summary, and compact financing/target sections. IBM Plex Sans is bundled locally with its SIL Open Font License. Vehicle reference/date fields are available under Deal details. Calculation and validation repairs remain in place.
 
 The refinement adds compact, separately bordered target cards with a grid of resulting figures, section accent colors, financing beside the deal inputs, a shorter mobile summary, and direct Compare payments / Review customer estimate / Edit deal actions. Empty estimates guide entry without presenting zero as a completed payment. Visible and entered dates use MM/DD/YY, with calendar validation and ISO rule dates retained internally. See `DESIGN-SYSTEM.md` for the component conventions and accessibility references.
 
-## Evidence
+## Original September 24 evidence
 
 - ESLint, 58 unit/regression tests, and the Vite production build pass.
 - All 52 applicable Playwright checks passed across the full run and targeted recheck, with 5 intentionally inapplicable project cases skipped. The initial run passed 50; two WebKit checks exceeded their setup budget during slow browser startup and passed unchanged with one worker. After the target-card refinements, 13 targeted browser checks passed across Chromium, mobile Chromium, and WebKit (2 inapplicable cases skipped), covering product/export, grid navigation, populated-target accessibility, responsive boundaries, and successive target applications. The breakpoint sweep runs once; the hidden mobile-grid recovery test includes resizing to desktop with an invalid draft.
@@ -27,6 +27,18 @@ GitHub runs 36066241694 and 36143119550 exposed a WebKit contrast regression mis
 Salespeople can enter a payment, out-the-door total, or amount-financed target on a financed deal, or cash due after trade / out-the-door on a cash deal. The selling-price scenario appears first and every scenario displays its resulting selling price. A blank selling price returns a price-only scenario using the entered taxes, fees, products, trade/payoff, cash down, and loan terms. Applying it still requires a complete calculated estimate and confirmed product tax treatment. Cash due means the final cash purchase balance after trade equity or payoff, not a second deduction for cash down. Each scenario changes one input; Apply recalculates the other options and supports Undo. Cent rounding can leave an explicitly displayed difference from a requested target.
 
 Validation includes reverse-price scenarios for all four targets, positive and negative trade equity on cash purchases, preview/apply reconciliation, and a browser flow from unknown price to payment, cash target, Apply, and Undo. The first full local browser run passed 57 checks with 6 project-specific skips; a final targeted recheck covers clearing an existing price before solving.
+
+## September 25 final release review
+
+Three independent reviews covered calculations, customer workflows, and engineering/deployment. The calculation review checked 1,200 varied deals, 3,071 reverse targets from blank selling price, 1,073 scenario Apply/preview reconciliations, and all 2026–2029 Michigan policy boundaries. No calculation blocker was found. Michigan Treasury RAB 2022-17 was checked against the implemented allowance-based deduction schedule; trade payoff does not reduce the tax deduction.
+
+The customer review verified actual clipboard contents, finance and cash/credit estimates, zero automated WCAG-tagged violations, no runtime errors, and no clipping at 320, 390, 760, 800, 801, 1024, and 1440 pixels. Typical finance and cash PDFs each fit one Letter page. A long-product-name stress case exposed excessive blank space; allowing the transaction ledger to split while keeping each row intact reduced it from three pages to two with all content preserved.
+
+The review also found and fixed a real calendar keyboard race: an immediate ArrowRight then Enter could activate the previous date while deferred focus waited for an animation frame. Existing days now focus immediately; newly rendered month days focus in a layout effect. The regression covers consecutive keypresses, crossing a month boundary, leap-day selection, invalid-date recovery, and Escape/focus restoration.
+
+The initial full local run passed 64 browser checks with six intentionally inapplicable cases skipped; two WebKit cases exhausted their 30-second test budget. Their traces showed correct totals and workflow state rather than financial assertion failures. WebKit alone now has a 45-second test budget and 10-second assertion budget to accommodate slow startup/action execution. Assertions and accessibility rules remain enabled. Final clean-source unit, browser, build, and required GitHub CI results are recorded in pull request #10 before production publication.
+
+The engineering review found no known npm dependency vulnerabilities, tracked secrets, unsafe HTML injection, customer-data persistence, or unexpected third-party requests. HTTPS/redirects and configured security headers were checked. Live branch protection requires the Release checks status, a pull request, resolved conversations, and an up-to-date branch, including for administrators. Cloudflare publication remains a separate explicit upload of the reviewed build.
 
 ## Release boundaries
 

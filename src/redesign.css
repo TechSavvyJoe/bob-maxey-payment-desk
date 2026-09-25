@@ -2733,6 +2733,8 @@ input[type="checkbox"] { flex:0 0 auto; }
  .results-panel--customer .breakdown-row strong { font-size:12px; }
  .results-panel--customer .result-warning { grid-column:1/-1; }
  .proposal-ledgers { display:block; order:3; width:100%; columns:2; column-gap:20px; }
+ /* Let long product lists continue across print columns; individual rows stay together. */
+ .proposal-ledgers > .customer-ledger:first-child { break-inside:auto; }
  .customer-ledger { border:0; padding:0; margin:0 0 14px; }
  .customer-ledger h2 { font-size:11px; font-weight:700; color:#00095b!important; border-bottom:2px solid #8395af; padding:0 0 6px; margin-bottom:3px; }
  .customer-ledger__row { padding:4px 0; font-size:11px; line-height:1.35; gap:12px; border-bottom:1px solid #e0e5ed; }
